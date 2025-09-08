@@ -1,0 +1,24 @@
+{
+  "title": "Benefits that move your metrics",
+  "columns": 4,
+  "variant": "accent",
+  "iconSize": 28,
+  "items": [
+    {
+      "title": "Automated Review Analysis",
+      "body": "We scan and analyze reviews from all major platforms using advanced AI, saving you hours of manual reading. Instantly surface what matters most from repeated complaints to unexpected praise all without lifting a finger."
+    },
+    {
+      "title": "Actionable Weekly Reports",
+      "body": "Every week, get a tailored report in your inbox that highlights top themes, recurring issues, and customer sentiments plus smart, practical suggestions on what to improve next in your business."
+    },
+    {
+      "title": "Multi-Platform Integration",
+      "body": "Effortlessly connect Google Reviews, Yelp, TripAdvisor, and more with a few clicks no technical skills needed. We centralize your feedback into one clear view so nothing gets missed."
+    },
+    {
+      "title": "Grow with Real Feedback",
+      "body": "Stop guessing and start growing. Understand exactly what your customers love, what they’re frustrated by, and what’s holding them back and use those insights to make better business decisions, fast."
+    }
+  ]
+}

@@ -1,0 +1,34 @@
+{
+  "title": "AI-powered solutions for every industry",
+  "items": [
+    {
+      "title": "Retail Stores- Spot Product Trends Fast",
+      "sub": "Discover which products customers are praising (or complaining about) across your locations. Whether you're managing a boutique or a chain, our AI helps you restock smarter, improve displays, and maximize customer satisfaction."
+    },
+    {
+      "title": "Restaurants & Cafés - Improve Service in Real Time",
+      "sub": "Customer Whisperer highlights feedback on food quality, wait times, and staff interactions — so you can act quickly before minor issues become major problems. Turn first-time diners into loyal regulars"
+    },
+    {
+      "title": "Service Providers – Build Reputation with Precision",
+      "sub": "From salons to auto repair shops, we analyze your online reviews to uncover exactly how customers feel about your service, responsiveness, and results. Strengthen your brand by fixing weak spots you didn’t know existed."
+    },
+    {
+      "title": "Ecommerce – Streamline the Customer Experience",
+      "sub": "Sync reviews from Shopify, Amazon, and beyond to pinpoint where your products or shipping experience are falling short. Our AI surfaces trends that help reduce returns, boost ratings, and build buyer trust"
+    }
+  ],
+  "cardImages": [
+    "https://framerusercontent.com/images/nvuXDeoXQ4KjgoW1Lnr0fcDSA2I.png",
+    "https://framerusercontent.com/images/T5F4WvPNF3dpx3XXRdWx2NV7SmA.png",
+    "https://framerusercontent.com/images/nvuXDeoXQ4KjgoW1Lnr0fcDSA2I.png"
+  ],
+  "containerHeight": 540,
+  "stackTop": 96,
+  "cardSize": { "w": 200, "h": 320 },
+  "transforms": [
+    "translate(-20%, 0) translateX(-180px) rotate(-8deg)",
+    "translate(10%, 0) rotate(-8deg)",
+    "translate(-30%, 0) translateY(120px) rotate(10deg)"
+  ]
+}
