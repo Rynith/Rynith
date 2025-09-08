@@ -1,0 +1,27 @@
+name: Alerts cron
+
+on:
+  schedule:
+    # Runs daily at 07:05 UTC (adjust as needed)
+    - cron: "5 7 * * *"
+  # Lets you trigger it manually from the Actions tab
+  workflow_dispatch:
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Trigger alerts runner
+        run: |
+          # -sS = silent but show errors
+          # -f  = fail on non-2xx
+          # --max-time 20 = bail if it hangs
+          # --retry helps transient network hiccups
+          curl -sS -f --max-time 20 --retry 3 --retry-delay 5 -X POST \
+            -H "x-internal-key: $INTERNAL_SYNC_KEY" \
+            "$RUN_ALERTS_URL"
+        env:
+          RUN_ALERTS_URL: ${{ secrets.RUN_ALERTS_URL }}
+          INTERNAL_SYNC_KEY: ${{ secrets.INTERNAL_SYNC_KEY }}
