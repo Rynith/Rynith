@@ -1,0 +1,13 @@
+# .github/workflows/weekly-digest.yml
+name: Weekly Digest
+on:
+  schedule:
+    - cron: "0 9 * * 1"
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    steps:
+      - run: curl -sS -X POST "$BASE/api/digest/run" -H "x-internal-key: $KEY"
+    env:
+      BASE: ${{ secrets.NEXT_PUBLIC_BASE_URL }}
+      KEY: ${{ secrets.INTERNAL_SYNC_KEY }}
