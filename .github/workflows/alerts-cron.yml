@@ -1,27 +1,35 @@
-name: Alerts cron
+name: Alerts Cron
 
 on:
   schedule:
-    # Runs daily at 07:05 UTC (adjust as needed)
-    - cron: "5 7 * * *"
-  # Lets you trigger it manually from the Actions tab
+    # Hourly (UTC). GitHub Actions uses UTC regardless of repo timezone.
+    - cron: "0 * * * *"
   workflow_dispatch:
+
+concurrency:
+  group: alerts-cron
+  cancel-in-progress: true
 
 jobs:
   run:
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     permissions:
       contents: read
+    env:
+      BASE: ${{ secrets.NEXT_PUBLIC_BASE_URL }}
+      INTERNAL_SYNC_KEY: ${{ secrets.INTERNAL_SYNC_KEY }}
     steps:
-      - name: Trigger alerts runner
+      - name: Generate today's alerts (/api/alerts/run)
         run: |
-          # -sS = silent but show errors
-          # -f  = fail on non-2xx
-          # --max-time 20 = bail if it hangs
-          # --retry helps transient network hiccups
-          curl -sS -f --max-time 20 --retry 3 --retry-delay 5 -X POST \
+          set -euo pipefail
+          curl -sS -f --max-time 20 --retry 3 --retry-delay 5 \
             -H "x-internal-key: $INTERNAL_SYNC_KEY" \
-            "$RUN_ALERTS_URL"
-        env:
-          RUN_ALERTS_URL: ${{ secrets.RUN_ALERTS_URL }}
-          INTERNAL_SYNC_KEY: ${{ secrets.INTERNAL_SYNC_KEY }}
+            -X POST "$BASE/api/alerts/run"
+
+      - name: Send alert emails (/api/alerts/email)
+        run: |
+          set -euo pipefail
+          curl -sS -f --max-time 20 --retry 3 --retry-delay 5 \
+            -H "x-internal-key: $INTERNAL_SYNC_KEY" \
+            -X POST "$BASE/api/alerts/email"
