@@ -1,0 +1,57 @@
+name: Sources Sync Cron
+
+on:
+  schedule:
+    - cron: '*/15 * * * *'   # every 15 minutes
+  workflow_dispatch:         # allow manual run
+
+permissions:
+  contents: read
+
+concurrency:
+  group: sync-cron
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Call /api/sources/sync (with retries)
+        env:
+          RUN_SYNC_URL: ${{ secrets.RUN_SYNC_URL }}
+          INTERNAL_SYNC_KEY: ${{ secrets.INTERNAL_SYNC_KEY }}
+        run: |
+          set -euo pipefail
+
+          if [ -z "${RUN_SYNC_URL:-}" ] || [ -z "${INTERNAL_SYNC_KEY:-}" ]; then
+            echo "Missing RUN_SYNC_URL or INTERNAL_SYNC_KEY repo secrets"
+            exit 1
+          fi
+
+          echo "POST $RUN_SYNC_URL"
+          attempt=0
+          max=3
+          until [ $attempt -ge $max ]
+          do
+            attempt=$((attempt+1))
+            http_code=$(curl -sS -X POST \
+              -H "x-internal-key: $INTERNAL_SYNC_KEY" \
+              -o response.json -w "%{http_code}" \
+              "$RUN_SYNC_URL" || true)
+
+            echo "HTTP $http_code"
+            cat response.json || true
+            echo
+
+            if [ "$http_code" -lt 400 ] && [ "$http_code" -ge 200 ]; then
+              echo "Sync OK"
+              exit 0
+            fi
+
+            echo "Sync failed (try $attempt/$max). Retrying in 10s…"
+            sleep 10
+          done
+
+          echo "Sync failed after $max attempts"
+          exit 1
