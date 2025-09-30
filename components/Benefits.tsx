@@ -48,7 +48,7 @@ function Reveal({ children, delay = 0 }: { children: ReactNode; delay?: number }
 
 // Safe defaults if JSON is missing/unreachable
 const FALLBACK: Required<DataShape> = {
-  title: 'Benefits of Customer whisperer to your Brand',
+  title: 'Benefits of Rynith to your Brand',
   columns: 4,
   variant: 'accent',
   iconSize: 28,

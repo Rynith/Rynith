@@ -32,6 +32,7 @@ type Props = {
 function Reveal({ children, delay = 0 }: { children: ReactNode; delay?: number }) {
   const ref = useRef<HTMLDivElement | null>(null);
   const [show, setShow] = useState(false);
+
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
@@ -42,6 +43,7 @@ function Reveal({ children, delay = 0 }: { children: ReactNode; delay?: number }
     io.observe(el);
     return () => io.disconnect();
   }, []);
+
   return (
     <div
       ref={ref}
@@ -56,12 +58,17 @@ function Reveal({ children, delay = 0 }: { children: ReactNode; delay?: number }
   );
 }
 
-const DEFAULTS: Required<Omit<DataShape, 'title' | 'items' | 'cardImages' | 'transforms'>> & {
+type FinalData = {
   title: string;
   items: Item[];
   cardImages: [string, string, string];
+  containerHeight: number;
+  stackTop: number;
+  cardSize: CardSize;
   transforms: [string, string, string];
-} = {
+};
+
+const DEFAULTS: FinalData = {
   title: 'AI-powered solutions for every industry',
   items: [
     {
@@ -101,16 +108,18 @@ export default function Industries(props: Props) {
   const [loading, setLoading] = useState<boolean>(!!props.src);
   const [error, setError] = useState<string | null>(null);
 
-  // Fetch JSON if src is provided
+  // Fetch JSON if src is provided (narrow first, then use the narrowed value)
   useEffect(() => {
     if (!props.src) return;
+    const url = props.src; // ← narrow to definite string for this effect run
     const ctrl = new AbortController();
+
     (async () => {
       try {
         setLoading(true);
         setError(null);
-        const res = await fetch(props.src, { signal: ctrl.signal, cache: 'force-cache' });
-        if (!res.ok) throw new Error(`Failed to load ${props.src} (${res.status})`);
+        const res = await fetch(url, { signal: ctrl.signal, cache: 'force-cache' });
+        if (!res.ok) throw new Error(`Failed to load ${url} (${res.status})`);
         const json = (await res.json()) as DataShape;
         setData(json);
       } catch (e: any) {
@@ -119,18 +128,19 @@ export default function Industries(props: Props) {
         setLoading(false);
       }
     })();
+
     return () => ctrl.abort();
   }, [props.src]);
 
   // Merge priority: props > JSON > defaults
-  const merged: Required<DataShape> = {
+  const merged: FinalData = {
     title: props.title ?? data?.title ?? DEFAULTS.title,
     items: props.items ?? data?.items ?? DEFAULTS.items,
-    cardImages: props.cardImages ?? (data?.cardImages as any) ?? DEFAULTS.cardImages,
+    cardImages: props.cardImages ?? data?.cardImages ?? DEFAULTS.cardImages,
     containerHeight: props.containerHeight ?? data?.containerHeight ?? DEFAULTS.containerHeight,
     stackTop: props.stackTop ?? data?.stackTop ?? DEFAULTS.stackTop,
     cardSize: props.cardSize ?? data?.cardSize ?? DEFAULTS.cardSize,
-    transforms: props.transforms ?? (data?.transforms as any) ?? DEFAULTS.transforms,
+    transforms: props.transforms ?? data?.transforms ?? DEFAULTS.transforms,
   };
 
   return (
@@ -148,7 +158,9 @@ export default function Industries(props: Props) {
           {/* Left: Accordion */}
           <div>
             <Reveal>
-              <h2 className="text-2xl sm:text-3xl font-semibold text-[#6A0DAD]">{merged.title}</h2>
+              <h2 className="text-2xl sm:text-3xl font-semibold text-[#6A0DAD]">
+                {merged.title}
+              </h2>
             </Reveal>
 
             <Accordion items={merged.items} />
@@ -178,7 +190,7 @@ function Accordion({ items }: { items: Item[] }) {
             onClick={() => setOpenIdx(openIdx === idx ? null : idx)}
             className="w-full flex items-center justify-between gap-4 px-5 py-4"
           >
-            <span className="text-base font-medium. text-[#6A0DAD]">{it.title}</span>
+            <span className="text-base font-medium text-[#6A0DAD]">{it.title}</span>
             <svg
               viewBox="0 0 24 24"
               className={`h-5 w-5 transform transition-transform ${

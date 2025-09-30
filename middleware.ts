@@ -2,9 +2,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServerClient, type CookieOptions } from "@supabase/ssr";
 
-// Public (no auth) routes — add any marketing pages here.
 const PUBLIC_PATHS = [
-  "/", // ← landing page
+  "/",
   "/pricing",
   "/about",
   "/contact",
@@ -13,10 +12,10 @@ const PUBLIC_PATHS = [
   "/terms",
   "/robots.txt",
   "/sitemap.xml",
-
-  // existing
-  "/_next",
+  "/data",
+  "/assets", // your public folders
   "/favicon.ico",
+  "/_next",
   "/public",
   "/auth",
   "/auth/callback",
@@ -24,14 +23,21 @@ const PUBLIC_PATHS = [
   "/api",
 ];
 
+// NEW: allow static files from /public by extension
+const STATIC_FILE_REGEX =
+  /\.(?:png|jpe?g|webp|gif|svg|ico|txt|xml|json|woff2?|ttf|otf|eot|mp4|webm)$/i;
+
 const isPublic = (p: string) =>
   PUBLIC_PATHS.some((x) => p === x || p.startsWith(x + "/"));
 
 export async function middleware(req: NextRequest) {
   const { pathname, origin } = req.nextUrl;
 
-  // allow marketing + explicitly public routes
+  // ✅ Skip marketing/public routes
   if (isPublic(pathname)) return NextResponse.next();
+
+  // ✅ Skip any request for a static file in /public
+  if (STATIC_FILE_REGEX.test(pathname)) return NextResponse.next();
 
   const res = NextResponse.next();
 
@@ -51,16 +57,12 @@ export async function middleware(req: NextRequest) {
     }
   );
 
-  // Auth gate for app-only areas
   const { data } = await supa.auth.getUser();
-  if (!data?.user) {
-    return NextResponse.redirect(new URL("/auth", origin));
-  }
+  if (!data?.user) return NextResponse.redirect(new URL("/auth", origin));
 
   return res;
 }
 
-// Apply to everything except Next static assets
 export const config = {
   matcher: ["/((?!_next/static|_next/image|favicon.ico).*)"],
 };

@@ -8,7 +8,7 @@ import CommunityCTA1 from '@/components/communityCTA1';
 import Pricing from '@/components/pricing';
 import Industries from '@/components/industries';
 import Benefits from '@/components/Benefits';
-import WhispererFeatures from '@/components/WhispererFeatures';
+import WhispererFeatures from '@/components/whispererFeatures';
 import { AnimatedDashboardCards } from "@/components/AnimatedDashboardCards"
 import WhyTeamsLoveCards from "@/components/teamCards"
 import CustomerInsightsFlow from "@/components/CustomerInsightsFlow";
@@ -117,7 +117,7 @@ export default function AilexLanding() {
           </Reveal>
           <Reveal delay={160}>
           <p className="mt-4 max-w-2xl mx-auto text-base sm:text-lg text-[var(--muted)]">
-              Customer Whisperer analyzes your reviews from Google, Yelp, and more revealing trends, problems, and opportunities so you can act fast and grow smarter
+              Rynith analyzes your reviews from Google, Yelp, and more revealing trends, problems, and opportunities so you can act fast and grow smarter
           </p>
           </Reveal>
           <Reveal delay={240}>
@@ -167,7 +167,7 @@ export default function AilexLanding() {
             <Reveal>
               <h1 className="text-4xl/tight sm:text-5xl/tight lg:text-6xl/tight font-semibold tracking-tight">
             <span className="block">Why Teams Love,</span>
-            <span className="block">Customer <span className="bg-gradient-to-r from-[var(--primaryFrom)] to-[var(--primaryTo)] bg-clip-text text-transparent">Whisperer</span></span>
+            <span className="block"><span className="bg-gradient-to-r from-[var(--primaryFrom)] to-[var(--primaryTo)] bg-clip-text text-transparent">Rynith</span></span>
             </h1>
             </Reveal>
              <WhyTeamsLoveCards />
@@ -200,7 +200,7 @@ export default function AilexLanding() {
 
       {/* FEATURES TABS */}
       <section className="py-16">
-        <WhispererFeatures src="/data/whisperer-features.json" />
+        <WhispererFeatures src="/data/whisperer-features.json"/>
       </section>
 
       {/* INTEGRATIONS + METRICS */}
@@ -242,7 +242,7 @@ export default function AilexLanding() {
         }}
         yearlyDiscount={0.10}
         copy={{
-          title: 'Simple pricing for Customer Whisperer',
+          title: 'Simple pricing for Rynith',
           monthlyLabel: 'Monthly',
           yearlyLabel: 'Yearly',
           yearlyBadge: '10% off',
@@ -261,8 +261,8 @@ export default function AilexLanding() {
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-10 text-sm text-[var(--muted)]">
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
             <div className="flex items-center gap-3">
-              <img src={ASSETS.logo} alt="Ailex" className="h-6 w-auto" />
-              <span>© {new Date().getFullYear()} Ailex. All rights reserved.</span>
+              <img src={ASSETS.logo} alt="Rynith" className="h-6 w-auto" />
+              <span>© {new Date().getFullYear()} Rynith. All rights reserved.</span>
             </div>
             <div className="flex gap-6">
               <a href="#" className="hover:text-[var(--primaryFrom)]">Privacy</a>
