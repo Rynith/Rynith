@@ -6,9 +6,9 @@ import { ChevronDown } from "lucide-react";
 
 const faqs = [
   {
-    question: "What is Customer Whisperer?",
+    question: "What is Rynith?",
     answer:
-      "Customer Whisperer helps businesses turn reviews and chats into actionable insights using AI — integrating data from platforms like Google, Yelp, Shopify, and more.",
+      "Rynith helps businesses turn reviews and chats into actionable insights using AI — integrating data from platforms like Google, Yelp, Shopify, and more.",
   },
   {
     question: "How easy is it to set up?",

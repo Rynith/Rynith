@@ -5,7 +5,7 @@ import { NextResponse } from "next/server";
 import { supabaseServer } from "@/lib/supabase-server";   // for user auth + membership check
 import { supabaseAdmin } from "@/lib/supabase-admin";     // service-role to run connector + update
 import { connectors } from "@/lib/connectors";
-import { rateLimit } from "@/lib/rate-limit";
+import { rateLimit } from "@/lib/rate-limits";
 
 export async function POST(req: Request) {
   // optional: per-IP throttle
@@ -13,7 +13,8 @@ export async function POST(req: Request) {
   const rl = rateLimit(`sync-one:${ip}`, 10, 60_000);
   if (!rl.allowed) return NextResponse.json({ error: "Too many requests" }, { status: 429 });
 
-  const supa = supabaseServer();
+  const supa = await supabaseServer();
+
   const { data: { user } } = await supa.auth.getUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 

@@ -40,7 +40,7 @@ export default function WhyTeamsLoveCards() {
     <section className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
       <div className="max-w-6xl mx-auto">
         <h2 className="text-3xl font-playfair font-semibold text-center mb-12">
-          Why teams love Customer Whisperer
+          Why teams love Rynith
         </h2>
 
         <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">

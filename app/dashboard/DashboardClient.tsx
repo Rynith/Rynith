@@ -60,6 +60,7 @@ export default function DashboardClient({ userEmail }: Props) {
     { id: "5", text: "Consider acoustic panels to reduce noise levels" },
   ]
 
+  
   return (
     <div className="min-h-screen bg-[#FAFAFA] flex">
       {/* Sidebar */}

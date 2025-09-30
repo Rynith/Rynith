@@ -1,10 +1,10 @@
-"use client"
+"use client";
 
-import React, { useState } from "react"
-import { useRouter } from "next/navigation"
-import Link from "next/link"
-import { motion, AnimatePresence } from "framer-motion"
-import confetti from "canvas-confetti"
+import React, { useState } from "react";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { motion, AnimatePresence } from "framer-motion";
+import confetti from "canvas-confetti";
 
 import {
   Card,
@@ -12,107 +12,105 @@ import {
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
-import { Button } from "@/components/ui/button"
-import { Label } from "@/components/ui/label"
-import { Separator } from "@/components/ui/separator"
-import { Users, Mail, Lock, Eye, EyeOff, Loader2 } from "lucide-react"
+} from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import { Separator } from "@/components/ui/separator";
+import { Users, Mail, Lock, Eye, EyeOff, Loader2 } from "lucide-react";
 
-import { supabaseBrowser } from "@/lib/supabase-browser"
+import { supabaseBrowser } from "@/lib/supabase-browser";
+
+/** Ensure org + membership exists for the current user */
+async function ensureOrgMembership() {
+  const res = await fetch("/api/org/config", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ ensure: true }),
+    cache: "no-store",
+    credentials: "include",
+  });
+  const j = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(j?.error || `Onboarding failed (${res.status})`);
+}
 
 export default function AuthPage() {
-  const [isLogin, setIsLogin] = useState(true)
-  const [showPassword, setShowPassword] = useState(false)
-  const [email, setEmail] = useState("")
-  const [password, setPassword] = useState("")
-  const [confirmPassword, setConfirmPassword] = useState("")
-  const [name, setName] = useState("")
-  const [submitting, setSubmitting] = useState(false)
-  const [errorMsg, setErrorMsg] = useState<string | null>(null)
-  const [infoMsg, setInfoMsg] = useState<string | null>(null)
+  const [isLogin, setIsLogin] = useState(true);
+  const [showPassword, setShowPassword] = useState(false);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [name, setName] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [infoMsg, setInfoMsg] = useState<string | null>(null);
 
-  const router = useRouter()
-  const supabase = supabaseBrowser()
+  const router = useRouter();
+  const supabase = supabaseBrowser();
 
   const fireConfetti = () => {
-    confetti({ particleCount: 150, spread: 70, origin: { y: 0.7 }, scalar: 0.9 })
-  }
-
-  // 🔗 call onboarding API; returns the next path to go to
-  const runOnboarding = async (): Promise<string> => {
-    try {
-      const res = await fetch("/api/onboarding", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        cache: "no-store",
-      })
-      if (!res.ok) return "/dashboard"
-      const data = await res.json().catch(() => null)
-      return data?.isNew ? "/onboarding" : "/dashboard"
-    } catch {
-      return "/dashboard"
-    }
-  }
+    confetti({ particleCount: 150, spread: 70, origin: { y: 0.7 }, scalar: 0.9 });
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setSubmitting(true)
-    setErrorMsg(null)
-    setInfoMsg(null)
+    e.preventDefault();
+    setSubmitting(true);
+    setErrorMsg(null);
+    setInfoMsg(null);
 
     try {
       if (isLogin) {
-        const { error } = await supabase.auth.signInWithPassword({ email, password })
-        if (error) throw error
+        const { error } = await supabase.auth.signInWithPassword({ email, password });
+        if (error) throw error;
 
-        // ✅ ensure org + membership, then route
-        const nextPath = await runOnboarding()
-        fireConfetti()
-        setTimeout(() => router.push(nextPath), 400)
+        // ✅ Ensure org + membership, then go to dashboard
+        await ensureOrgMembership();
+        fireConfetti();
+        setTimeout(() => router.replace("/dashboard"), 300);
       } else {
-        if (password !== confirmPassword) throw new Error("Passwords do not match.")
+        if (password !== confirmPassword) throw new Error("Passwords do not match.");
 
         const { error, data } = await supabase.auth.signUp({
           email,
           password,
           options: { data: { full_name: name } },
-        })
-        if (error) throw error
+        });
+        if (error) throw error;
 
         if (!data.session) {
-          // email confirmation flow
-          setInfoMsg("Check your inbox to confirm your email before signing in.")
+          // Email confirmation flow (no session yet)
+          setInfoMsg("Check your inbox to confirm your email before signing in.");
         } else {
-          // auto-signed-in projects → onboard now
-          const nextPath = await runOnboarding()
-          fireConfetti()
-          setTimeout(() => router.push(nextPath), 400)
+          // Auto-signed-in projects → onboard now
+          await ensureOrgMembership();
+          fireConfetti();
+          setTimeout(() => router.replace("/dashboard"), 300);
         }
       }
     } catch (err: any) {
-      setErrorMsg(err?.message ?? "Something went wrong. Please try again.")
+      setErrorMsg(err?.message ?? "Something went wrong. Please try again.");
     } finally {
-      setSubmitting(false)
+      setSubmitting(false);
     }
-  }
+  };
 
   const handleGoogleLogin = async () => {
     try {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: "google",
         options: {
-          redirectTo: typeof window !== "undefined"
-            ? `${window.location.origin}/auth/callback`
-            : undefined,
+          redirectTo:
+            typeof window !== "undefined"
+              ? `${window.location.origin}/auth/callback`
+              : undefined,
         },
-      })
-      if (error) throw error
-      // OAuth will return to /auth/callback where you already run onboarding server-side
+      });
+      if (error) throw error;
+      // After OAuth returns to /auth/callback, run ensure there or rely on middleware + onboarding page.
     } catch (err: any) {
-      setErrorMsg(err?.message ?? "Google sign-in failed.")
+      setErrorMsg(err?.message ?? "Google sign-in failed.");
     }
-  }
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-r from-[#f4f1ff] to-[#f7f5ff] flex items-center justify-center relative overflow-hidden px-4">
@@ -147,11 +145,7 @@ export default function AuthPage() {
           </p>
         </motion.div>
 
-        <motion.div
-          initial={{ opacity: 0, y: 16 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.35, ease: "easeOut", delay: 0.05 }}
-        >
+        <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35, ease: "easeOut", delay: 0.05 }}>
           <Card className="bg-white/90 shadow-xl border border-gray-200 rounded-2xl">
             <CardHeader>
               <CardTitle className="text-center text-xl">
@@ -170,7 +164,6 @@ export default function AuthPage() {
                 onClick={handleGoogleLogin}
                 disabled={submitting}
               >
-                {/* Google icon paths */}
                 <svg className="w-4 h-4 mr-2" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
                   <path d="M21.8 10.1H12v3.8h5.6c-.3 1.6-1.5 2.9-3.2 3.4v2.8h5.1c3-2.8 4.1-7.3 2.3-10.9z" />
                   <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
@@ -310,5 +303,5 @@ export default function AuthPage() {
         </motion.div>
       </div>
     </div>
-  )
+  );
 }

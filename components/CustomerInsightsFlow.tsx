@@ -46,7 +46,7 @@ export default function CustomerInsightsShowcase() {
         </motion.h2>
 
         <p className="mt-6 text-muted-foreground max-w-xl mx-auto text-base sm:text-lg">
-          Customer Whisperer helps your team make better decisions by collecting reviews,
+          Rynith helps your team make better decisions by collecting reviews,
           analyzing intent and sentiment, and offering tailored insights — all in one place.
         </p>
 

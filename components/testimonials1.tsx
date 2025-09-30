@@ -18,7 +18,7 @@ const DEFAULT_TESTIMONIALS: Testimonial1[] = [
     company: 'ShopSwift',
     avatar: 'https://randomuser.me/api/portraits/women/68.jpg',
     quote:
-      'Customer Whisperer turned our support into a growth loop. Auto-summaries and intent tagging cut handle time by 32% in the first month.',
+      'Rynith turned our support into a growth loop. Auto-summaries and intent tagging cut handle time by 32% in the first month.',
   },
   {
     name: 'Diego Martins',

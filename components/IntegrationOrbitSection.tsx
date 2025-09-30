@@ -84,7 +84,7 @@ export default function IntegrationOrbit() {
             </Reveal>
             <Reveal delay={120}>
               <p className="mt-3 text-[var(--muted)]">
-                Google, Yelp, Reddit, WhatsApp, and more — Customer Whisperer unifies your reviews and feedback into
+                Google, Yelp, Reddit, WhatsApp, and more. Rynith unifies your reviews and feedback into
                 one actionable dashboard.
               </p>
             </Reveal>

@@ -49,7 +49,7 @@ export default function ResponsiveNavbar() {
         <div className="flex h-16 items-center justify-between">
           <Link href="/" className="flex items-center gap-3">
             <img src="/logo.svg" alt="Logo" className="h-7 w-auto" />
-            <span className="font-semibold text-lg">Customer Whisperer</span>
+            <span className="font-semibold text-lg">Rynith</span>
           </Link>
 
           {/* Desktop Menu */}

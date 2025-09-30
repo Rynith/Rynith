@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import type { ReactNode } from "react";
 import type { CSSProperties } from 'react';
 import Testimonial1 from '@/components/testimonials1';
 import CommunityCTA1 from '@/components/communityCTA1';
@@ -13,7 +14,7 @@ import WhyTeamsLoveCards from "@/components/teamCards"
 import CustomerInsightsFlow from "@/components/CustomerInsightsFlow";
 import IntegrationOrbitSection from "@/components/IntegrationOrbitSection";
 import FAQAccordion from "@/components/FAQAccordion";
-import ResponsiveNavbar from "@/components/ResponsiveNavbar";
+
 
 
 const ASSETS = {
@@ -92,30 +93,8 @@ export default function AilexLanding() {
 
       {/* NAVBAR */}
       <header className="sticky top-0 z-50 bg-[var(--bg)]/80 backdrop-blur border-b border-[var(--border)]">
-        <ResponsiveNavbar/>
+       
         
-        {/* <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="flex h-16 items-center justify-between">
-            <div className="flex items-center gap-3">
-              <img src={ASSETS.logo} alt="Ailex" className="h-7 w-auto" />
-              <span className="sr-only">Customer Whisperer</span>
-            </div>
-            <nav className="hidden md:flex items-center gap-8 text-sm text-[var(--muted)]">
-              <a href="#home" className="hover:text-[var(--primaryFrom)]">Home</a>
-              <a href="#pricing" className="hover:text-[var(--primaryFrom)]">Pricing</a>
-              <a href="#resources" className="hover:text-[var(--primaryFrom)]">Resources</a>
-              <a href="#blog" className="hover:text-[var(--primaryFrom)]">Blog</a>
-            </nav>
-            <div className="flex items-center gap-3">
-              <a
-                href="#cta"
-                className="inline-flex items-center rounded-xl bg-gradient-to-r from-[var(--primaryFrom)] to-[var(--primaryTo)] text-white px-4 py-2 text-sm font-semibold shadow hover:shadow-lg transition"
-              >
-                Try free
-              </a>
-            </div>
-          </div>
-        </div> */}
       </header>
 
       {/* HERO */}

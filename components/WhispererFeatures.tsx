@@ -52,7 +52,7 @@ const FALLBACK: DataShape = {
       key: 'summaries',
       label: 'AI-Powered Insights',
       title: 'Instant summaries your team can trust',
-      body: 'Customer Whisperer distills long conversations into crisp, actionable notes—tone, intent, and next steps—so agents jump in with context.',
+      body: 'Rynith distills long conversations into crisp, actionable notes—tone, intent, and next steps—so agents jump in with context.',
       imageSrc: '/dashboard4.png'
     }
   ]

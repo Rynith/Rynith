@@ -38,7 +38,7 @@ export default function CustomerInsightsFlow() {
           </span>
         </h2>
         <p className="text-muted-foreground max-w-xl mx-auto text-lg">
-          Customer Whisperer turns scattered reviews and data into powerful insights — helping your team move from guesswork to clarity, effortlessly.
+          Rynith turns scattered reviews and data into powerful insights helping your team move from guesswork to clarity, effortlessly.
         </p>
 
         {/* Visual flow */}
