@@ -3,7 +3,7 @@ export const runtime = "nodejs";
 import { NextResponse } from "next/server";
 import { supabaseServer } from "@/lib/supabase-server"; // cookie-bound (for session)
 import { supabaseAdmin } from "@/lib/supabase-admin"; // service role (bypass RLS)
-import { sendInviteEmail } from "@/lib/emails/invite-email";
+import {sendInviteEmail} from "@/lib/emails/invite-email";
 
 type Role = "owner" | "admin" | "member";
 const ROLES: Role[] = ["owner", "admin", "member"];

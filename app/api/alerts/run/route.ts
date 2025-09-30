@@ -46,7 +46,7 @@ async function sendEmailResend(
   html: string
 ): Promise<boolean> {
   const key = process.env.RESEND_API_KEY || "";
-  const from = process.env.EMAIL_FROM || "Rynith <no-reply@example.com>";
+  const from = process.env.EMAIL_FROM || "Rynith <no-reply@notifications.rynith.com>";
   if (!key) {
     console.log(`[digest][dev] Would send to ${to}: ${subject}`);
     return true;

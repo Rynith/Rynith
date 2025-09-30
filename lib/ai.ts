@@ -13,6 +13,54 @@ function openaiClient() {
 
 const CHAT_MODEL = process.env.OPENAI_CHAT_MODEL || "gpt-4o-mini";
 
+/* -------------------- ADD THIS: embeddings helpers -------------------- */
+const EMBED_MODEL_DEFAULT = process.env.OPENAI_EMBED_MODEL || "text-embedding-3-small";
+
+/** Embed a single text into a vector (number[]) */
+export async function embedText(
+  text: string,
+  opts?: { model?: string; truncate?: number }
+): Promise<number[]> {
+  const o = openaiClient();
+  const model = opts?.model || EMBED_MODEL_DEFAULT;
+
+  // Basic hard limit; OpenAI handles tokenization, but avoid huge payloads
+  const maxChars = opts?.truncate ?? 8000;
+  const input = (text ?? "").slice(0, maxChars);
+
+  if (!input.trim()) return [];
+
+  const resp = await o.embeddings.create({
+    model,
+    input, // string input → returns a single embedding
+  });
+
+  const emb = resp.data[0]?.embedding;
+  // Ensure plain number[]
+  return Array.isArray(emb) ? (emb as unknown as number[]) : [];
+}
+
+/** Embed many texts at once; preserves order 1:1 */
+export async function embedBatch(
+  texts: string[],
+  opts?: { model?: string; truncate?: number }
+): Promise<number[][]> {
+  const o = openaiClient();
+  const model = opts?.model || EMBED_MODEL_DEFAULT;
+  const maxChars = opts?.truncate ?? 8000;
+
+  const inputs = (texts || []).map((t) => String(t ?? "").slice(0, maxChars));
+  if (!inputs.length) return [];
+
+  const resp = await o.embeddings.create({
+    model,
+    input: inputs, // string[]
+  });
+
+  return resp.data.map((d) => (d.embedding as unknown as number[]) ?? []);
+}
+/* ------------------ END: embeddings helpers addition ------------------ */
+
 export async function summarizeClusters(input: {
   orgName?: string | null;
   days: number;

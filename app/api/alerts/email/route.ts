@@ -12,7 +12,7 @@ async function sendEmailResend(
   html: string
 ): Promise<boolean> {
   const key = process.env.RESEND_API_KEY || "";
-  const from = process.env.EMAIL_FROM || "Rynith <no-reply@example.com>";
+  const from = process.env.EMAIL_FROM || "Rynith <no-reply@notifications.rynith.com>";
 
   // In dev (no key), just log and treat as success so we don’t spam repeatedly
   if (!key) {
