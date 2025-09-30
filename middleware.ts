@@ -2,9 +2,19 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServerClient, type CookieOptions } from "@supabase/ssr";
 
-// Allow these paths without auth-gating in middleware.
-// (Pages/APIs will enforce their own auth/roles as needed.)
+// Public (no auth) routes — add any marketing pages here.
 const PUBLIC_PATHS = [
+  "/", // ← landing page
+  "/pricing",
+  "/about",
+  "/contact",
+  "/blog",
+  "/privacy",
+  "/terms",
+  "/robots.txt",
+  "/sitemap.xml",
+
+  // existing
   "/_next",
   "/favicon.ico",
   "/public",
@@ -20,6 +30,7 @@ const isPublic = (p: string) =>
 export async function middleware(req: NextRequest) {
   const { pathname, origin } = req.nextUrl;
 
+  // allow marketing + explicitly public routes
   if (isPublic(pathname)) return NextResponse.next();
 
   const res = NextResponse.next();
@@ -29,9 +40,7 @@ export async function middleware(req: NextRequest) {
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookies: {
-        get(name: string) {
-          return req.cookies.get(name)?.value;
-        },
+        get: (name: string) => req.cookies.get(name)?.value,
         set(name: string, value: string, options: CookieOptions) {
           res.cookies.set({ name, value, ...options });
         },
@@ -42,7 +51,7 @@ export async function middleware(req: NextRequest) {
     }
   );
 
-  // Auth-only gate (no org/membership checks here)
+  // Auth gate for app-only areas
   const { data } = await supa.auth.getUser();
   if (!data?.user) {
     return NextResponse.redirect(new URL("/auth", origin));

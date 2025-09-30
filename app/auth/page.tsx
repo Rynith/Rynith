@@ -125,7 +125,7 @@ export default function AuthPage() {
             <div className="h-9 w-9 rounded-full bg-gradient-to-br from-[#6A0DAD] to-[#7B3AED] flex items-center justify-center">
               <Users className="h-4 w-4 text-white" />
             </div>
-            <span className="text-xl font-bold text-[#1A1A1A]">Customer Whisperer</span>
+            <span className="text-xl font-bold text-[#1A1A1A]">Rynith</span>
           </Link>
           <h1 className="text-3xl font-bold text-[#1A1A1A] mb-2">
             <AnimatePresence mode="wait">
