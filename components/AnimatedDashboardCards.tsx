@@ -1,63 +1,99 @@
 // components/AnimatedDashboardCards.tsx
-"use client"
+"use client";
 
-import Image from "next/image"
-import { motion } from "framer-motion"
+import Image from "next/image";
+import { motion, useReducedMotion, type Transition } from "framer-motion";
 
-const bounceTransition = {
+const bounce: Transition = {
   repeat: Infinity,
   repeatType: "reverse",
-  duration: 0.8,
+  duration: 1.05,
   ease: "easeInOut",
-}
+};
 
 export function AnimatedDashboardCards() {
+  const prefersReduced = useReducedMotion();
+  const animate = (desktop: number, mobile: number) =>
+    prefersReduced ? { y: 0 } : { y: [0, -(typeof window !== "undefined" && window.innerWidth < 640 ? mobile : desktop), 0] };
+
   return (
-    <div className="flex justify-center items-end gap-6 overflow-hidden mt-10">
-      {/* Card 1 */}
-      <motion.div
-        className="relative w-64 h-96 rounded-xl shadow-xl overflow-hidden rotate-[-8deg]"
-        animate={{ y: [0, -20] }}
-        transition={bounceTransition}
-      >
-        <Image
-          src="/dashboard1.png"
-          alt="Dashboard 1"
-          fill
-          sizes="(max-width: 768px) 100vw, 33vw"
-          className="object-cover"
-        />
-      </motion.div>
+    <div className="relative mx-auto w-full max-w-[1100px]">
+      {/* no extra margins or clipping */}
+      <div className="relative overflow-visible mt-12">
+        <div
+          className="
+            relative mx-auto flex items-end justify-center
+            gap-2 xs:gap-3 sm:gap-6 md:gap-10
+          "
+        >
+          {/* LEFT */}
+          <motion.div
+            className="
+              relative overflow-hidden rounded-[20px] sm:rounded-[24px] md:rounded-[28px] shadow-2xl ring-1 ring-black/5
+              w-[110px] h-[190px] xs:w-[130px] xs:h-[220px]
+              sm:w-[200px] sm:h-[340px]
+              md:w-[240px] md:h-[400px]
+              -rotate-[9deg] translate-y-[2px] md:-translate-x-4
+            "
+            animate={animate(10, 6)}
+            transition={{ y: bounce }}
+            aria-hidden="true"
+          >
+            <Image
+              src="/dashboard1.png"
+              alt="Dashboard preview left"
+              fill
+              className="object-cover"
+              sizes="(max-width: 640px) 130px, (max-width: 768px) 200px, 240px"
+              priority
+            />
+          </motion.div>
 
-      {/* Card 2 */}
-      <motion.div
-        className="relative w-64 h-96 rounded-xl shadow-xl overflow-hidden rotate-[0deg] z-10"
-        animate={{ y: [0, -30] }}
-        transition={bounceTransition}
-      >
-        <Image
-          src="/dashboard2.png"
-          alt="Dashboard 2"
-          fill
-          sizes="(max-width: 768px) 100vw, 33vw"
-          className="object-cover"
-        />
-      </motion.div>
+          {/* CENTER */}
+          <motion.div
+            className="
+              relative z-10 overflow-hidden rounded-[20px] sm:rounded-[24px] md:rounded-[28px] shadow-2xl ring-1 ring-black/5
+              w-[120px] h-[210px] xs:w-[140px] xs:h-[235px]
+              sm:w-[220px] sm:h-[360px]
+              md:w-[260px] md:h-[420px]
+            "
+            animate={animate(14, 8)}
+            transition={{ y: bounce }}
+          >
+            <Image
+              src="/dashboard2.png"
+              alt="Dashboard preview center"
+              fill
+              className="object-cover"
+              sizes="(max-width: 640px) 140px, (max-width: 768px) 220px, 260px"
+              priority
+            />
+          </motion.div>
 
-      {/* Card 3 */}
-      <motion.div
-        className="relative w-64 h-96 rounded-xl shadow-xl overflow-hidden rotate-[8deg]"
-        animate={{ y: [0, -20] }}
-        transition={bounceTransition}
-      >
-        <Image
-          src="/dashboard3.png"
-          alt="Dashboard 3"
-          fill
-          sizes="(max-width: 768px) 100vw, 33vw"
-          className="object-cover"
-        />
-      </motion.div>
+          {/* RIGHT */}
+          <motion.div
+            className="
+              relative overflow-hidden rounded-[20px] sm:rounded-[24px] md:rounded-[28px] shadow-2xl ring-1 ring-black/5
+              w-[110px] h-[190px] xs:w-[130px] xs:h-[220px]
+              sm:w-[200px] sm:h-[340px]
+              md:w-[240px] md:h-[400px]
+              rotate-[9deg] translate-y-[2px] md:translate-x-4
+            "
+            animate={animate(10, 6)}
+            transition={{ y: bounce }}
+            aria-hidden="true"
+          >
+            <Image
+              src="/dashboard3.png"
+              alt="Dashboard preview right"
+              fill
+              className="object-cover"
+              sizes="(max-width: 640px) 130px, (max-width: 768px) 200px, 240px"
+              priority
+            />
+          </motion.div>
+        </div>
+      </div>
     </div>
-  )
+  );
 }

@@ -190,7 +190,7 @@ export default function AilexLanding() {
                 “It’s like having a customer feedback team working 24/7 — I finally know what to fix and what to double down on.”
               </blockquote>
               <figcaption className="mt-4 flex items-center justify-center gap-3 text-sm text-[var(--muted)]">
-                <img src={ASSETS.avatar} alt="Avatar" className="h-8 w-8 rounded-full" />
+                <img src='/ceo1.png' alt="Avatar" className="h-8 w-8 rounded-full" />
                 <span>Carlos Jonson, Founder & CEO</span>
               </figcaption>
             </figure>
