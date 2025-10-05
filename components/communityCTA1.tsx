@@ -44,7 +44,7 @@ function Reveal({ children, delay = 0 }: { children: ReactNode; delay?: number }
 export default function CommunityCTA1({
   id = 'community',
   title = 'Turn feedback into fuel Join the community',
-  subtitle = 'Weekly playbooks, templates, and beta invites to turn customer feedback into action—cut handle time and raise CSAT.',
+  subtitle = 'Weekly playbooks, templates, and beta invites to turn customer feedback into action,Cut handle time and raise CSAT.',
   backgroundUrl,
   features = ['No credit card is required', 'Early access & Special offers'],
   onSubmit,

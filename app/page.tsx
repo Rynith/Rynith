@@ -14,13 +14,13 @@ import WhyTeamsLoveCards from "@/components/teamCards"
 import CustomerInsightsFlow from "@/components/CustomerInsightsFlow";
 import IntegrationOrbitSection from "@/components/IntegrationOrbitSection";
 import FAQAccordion from "@/components/FAQAccordion";
+import Link from "next/link";
 
 
 
 const ASSETS = {
-  logo: 'https://framerusercontent.com/images/z28AmvV9JSfqlsOMp3x2UoKqkI.svg',
+  logo: '/assets/logos/rynith-logo.png',
   star: 'https://framerusercontent.com/images/c36j8ipdQiwrXr6ZpEDoo64rU.svg',
-  // bg: 'https://framerusercontent.com/images/Y28bNIprVEz9Qy8OJJsq6ES10.jpg',
   heroA: 'https://framerusercontent.com/images/nvuXDeoXQ4KjgoW1Lnr0fcDSA2I.png',
   heroB: 'https://framerusercontent.com/images/T5F4WvPNF3dpx3XXRdWx2NV7SmA.png',
   logos: [
@@ -92,10 +92,9 @@ export default function AilexLanding() {
 
 
       {/* NAVBAR */}
-      <header className="sticky top-0 z-50 bg-[var(--bg)]/80 backdrop-blur border-b border-[var(--border)]">
+      {/* <header className="sticky top-0 z-50 bg-[var(--bg)]/80 backdrop-blur border-b border-[var(--border)]">
        
-        
-      </header>
+      </header> */}
 
       {/* HERO */}
      <section id="home" className="relative overflow-hidden">
@@ -122,18 +121,19 @@ export default function AilexLanding() {
           </Reveal>
           <Reveal delay={240}>
           <div className="mt-8 flex items-center justify-center gap-3">
-          <a
-          href="#features"
+          <Link
+          href="/demo"
           className="inline-flex items-center rounded-xl bg-gradient-to-r from-[var(--primaryFrom)] to-[var(--primaryTo)] text-white px-5 py-3 text-sm font-semibold shadow transition hover:shadow-lg"
           >
           Start Free Trial
-          </a>
-          <a
-          href="#pricing"
+          </Link>
+          
+          <Link
+          href="/demo"
           className="inline-flex items-center rounded-xl border border-[var(--border)] px-5 py-3 text-sm font-semibold text-[var(--text)] hover:bg-[var(--surfaceAccent)]/60"
           >
           Book a Demo
-          </a>
+          </Link>
           </div>
           </Reveal>
           </div>
@@ -267,7 +267,7 @@ export default function AilexLanding() {
             <div className="flex gap-6">
               <a href="#" className="hover:text-[var(--primaryFrom)]">Privacy</a>
               <a href="#" className="hover:text-[var(--primaryFrom)]">Terms</a>
-              <a href="#" className="hover:text-[var(--primaryFrom)]">Contact</a>
+              <a href="/contact" className="hover:text-[var(--primaryFrom)]">Contact</a>
             </div>
           </div>
         </div>

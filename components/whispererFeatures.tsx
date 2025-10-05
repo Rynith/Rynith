@@ -45,7 +45,7 @@ function Reveal({ children, delay = 0 }: { children: ReactNode; delay?: number }
 
 const FALLBACK: DataShape = {
   heading: 'Advanced AI features for smarter automation',
-  cta: { label: 'Get started now', href: '#cta' },
+  cta: { label: 'Get started now', href: '/demo' },
   initialKey: 'summaries',
   items: [
     {

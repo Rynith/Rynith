@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import { Menu, X } from "lucide-react";
 import { supabaseBrowser } from "@/lib/supabase-browser";
 
+
 export default function ResponsiveNavbar() {
   const [open, setOpen] = useState(false);
   const [isAuthed, setIsAuthed] = useState(false);
@@ -48,7 +49,7 @@ export default function ResponsiveNavbar() {
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="flex h-16 items-center justify-between">
           <Link href="/" className="flex items-center gap-3">
-            <img src="/logo.svg" alt="Logo" className="h-7 w-auto" />
+            <img src="/assets/logos/rynith-logo.png" alt="Logo" className="h-7 w-auto" />
             <span className="font-semibold text-lg">Rynith</span>
           </Link>
 
@@ -62,30 +63,14 @@ export default function ResponsiveNavbar() {
           </nav>
 
           {/* Auth Buttons */}
+          
           <div className="flex items-center gap-3">
-            {isAuthed ? (
-              <>
-                <Link
-                  href="/dashboard"
-                  className="text-sm font-medium text-[var(--text)] hover:text-[var(--primaryFrom)]"
-                >
-                  Dashboard
-                </Link>
-                <button
-                  onClick={handleLogout}
-                  className="inline-flex items-center rounded-xl border border-[var(--border)] px-4 py-2 text-sm font-semibold text-[var(--text)] hover:bg-[var(--surfaceAccent)]"
-                >
-                  Sign out
-                </button>
-              </>
-            ) : (
-              <Link
-                href="/auth" /* was /login; unify to /auth */
-                className="inline-flex items-center rounded-xl bg-gradient-to-r from-[var(--primaryFrom)] to-[var(--primaryTo)] text-white px-4 py-2 text-sm font-semibold shadow hover:shadow-lg"
-              >
-                Login / Signup
-              </Link>
-            )}
+          <Link href="/demo" className="inline-flex items-center rounded-xl bg-gradient-to-r from-[var(--primaryFrom)] to-[var(--primaryTo)] text-white px-5 py-3 text-sm font-semibold shadow hover:shadow-md">
+             Book a demo
+          </Link>
+            
+            {/* PLACE BACK LOGIN/SIGNUP BUTTON WHEN READY, CHECK BUTTON OFF CODE */}
+            
           </div>
 
           {/* Mobile toggle */}
@@ -108,8 +93,10 @@ export default function ResponsiveNavbar() {
           <Link href="#pricing" className="block">Pricing</Link>
           <Link href="#faq" className="block">FAQ</Link>
           <Link href="#resources" className="block">Resources</Link>
+          <Link href="/demo" className="inline-flex items-center rounded-xl bg-gradient-to-r from-[var(--primaryFrom)] to-[var(--primaryTo)] text-white px-5 py-3 text-sm font-semibold shadow hover:shadow-md">Book a demo </Link>
 
-          {isAuthed ? (
+   {/*    uncomment to show login sign when ready to receive clients         */}
+          {/* {isAuthed ? (
             <>
               <Link href="/dashboard" className="block">Dashboard</Link>
               <button onClick={handleLogout} className="block text-left text-[var(--muted)]">Sign out</button>
@@ -121,9 +108,34 @@ export default function ResponsiveNavbar() {
             >
               Login / Signup
             </Link>
-          )}
+          )} */}
         </div>
       )}
     </header>
   );
 }
+
+// LOGIN/SIGNUP CODE COPY UP TO PLACE NEEDED
+// {isAuthed ? (
+//               <>
+//                 <Link
+//                   href="/dashboard"
+//                   className="text-sm font-medium text-[var(--text)] hover:text-[var(--primaryFrom)]"
+//                 >
+//                   Dashboard
+//                 </Link>
+//                 <button
+//                   onClick={handleLogout}
+//                   className="inline-flex items-center rounded-xl border border-[var(--border)] px-4 py-2 text-sm font-semibold text-[var(--text)] hover:bg-[var(--surfaceAccent)]"
+//                 >
+//                   Sign out
+//                 </button>
+//               </>
+//             ) : (
+//               <Link
+//                 href="/auth" /* was /login; unify to /auth */
+//                 className="inline-flex items-center rounded-xl bg-gradient-to-r from-[var(--primaryFrom)] to-[var(--primaryTo)] text-white px-4 py-2 text-sm font-semibold shadow hover:shadow-lg"
+//               >
+//                 Login / Signup
+//               </Link>
+//             )}

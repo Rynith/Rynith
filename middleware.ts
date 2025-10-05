@@ -13,6 +13,8 @@ const PUBLIC_PATHS = [
   "/robots.txt",
   "/sitemap.xml",
   "/data",
+  "/demo",
+  "/api/contact",
   "/assets", // your public folders
   "/favicon.ico",
   "/_next",

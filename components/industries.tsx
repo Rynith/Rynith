@@ -89,9 +89,9 @@ const DEFAULTS: FinalData = {
     },
   ],
   cardImages: [
-    'https://framerusercontent.com/images/nvuXDeoXQ4KjgoW1Lnr0fcDSA2I.png',
-    'https://framerusercontent.com/images/T5F4WvPNF3dpx3XXRdWx2NV7SmA.png',
-    'https://framerusercontent.com/images/nvuXDeoXQ4KjgoW1Lnr0fcDSA2I.png',
+    '/industry1.png',
+    '/industry2.png',
+    '/industry3.png',
   ],
   containerHeight: 540,
   stackTop: 96,
@@ -242,7 +242,7 @@ function StackedCards({
       <div className="absolute inset-x-0" style={{ top: stackTop }}>
         <Reveal delay={80}>
           <img
-            src={images[0]}
+            src="/industry1.png"
             alt="Industry card"
             className="absolute rounded-2xl border border-[var(--border)] object-cover z-30"
             style={{ width: cardSize.w, height: cardSize.h, left: '50%', transform: transforms[0] }}
@@ -250,7 +250,7 @@ function StackedCards({
         </Reveal>
         <Reveal delay={200}>
           <img
-            src={images[1]}
+            src="/industry2.png"
             alt="Industry card"
             className="absolute rounded-2xl border border-[var(--border)] object-cover z-20"
             style={{ width: cardSize.w, height: cardSize.h, left: '50%', transform: transforms[1] }}
@@ -258,7 +258,7 @@ function StackedCards({
         </Reveal>
         <Reveal delay={320}>
           <img
-            src={images[2]}
+            src="/industry3.png"
             alt="Industry card"
             className="absolute rounded-2xl border border-[var(--border)] object-cover z-10"
             style={{ width: cardSize.w, height: cardSize.h, left: '50%', transform: transforms[2] }}

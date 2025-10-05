@@ -1,6 +1,6 @@
 {
   "heading": "Advanced AI features for smarter automation",
-  "cta": { "label": "Get started now", "href": "#cta" },
+  "cta": { "label": "Get started now", "href": "/demo" },
   "initialKey": "summaries",
   "items": [
     {
@@ -8,7 +8,7 @@
       "label": "AI-Powered Insights",
       "title": "Instant summaries your team can trust",
       "body": "Rynith condenses long email and chat threads into crisp, actionable notes tone, intent, blockers, and next steps. so agents jump in with context.",
-      "imageSrc": "/dashboard4.png",
+      "imageSrc": "/dashboard44.png",
       "imageAlt": "AI thread summary UI"
     },
     {
@@ -16,7 +16,7 @@
       "label": "Real-time Sentiment Analysis",
       "title": "Understand urgency and mood in real time",
       "body": "Detect positive, neutral, and negative sentiment alongside intent and product cues. Auto-prioritize hot tickets and escalate at the right moment.",
-      "imageSrc": "/dashboard5.png",
+      "imageSrc": "/dashboard55.png",
       "imageAlt": "Sentiment and intent flow"
     },
     {
@@ -24,7 +24,7 @@
       "label": "Automated Reports & Dashboards",
       "title": "Route to the best team and trigger the right actions",
       "body": "Classify by product, topic, and customer tier. Fire the correct macro, attach knowledge links, and hand off to the right queue automatically.",
-      "imageSrc": "/dashboard4.png",
+      "imageSrc": "/dashboard 6.png",
       "imageAlt": "Automated routing with macros"
     },
     {
@@ -32,7 +32,7 @@
       "label": "Customer 360 insights",
       "title": "Turn conversations into product & CX insights",
       "body": "Roll up themes, top issues, and feature requests across channels. Share dashboards that help product and ops teams prioritize the right fixes.",
-      "imageSrc": "q.png",
+      "imageSrc": "insights.png",
       "imageAlt": "Aggregated insights and trends"
     }
   ]
