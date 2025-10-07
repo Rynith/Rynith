@@ -25,9 +25,6 @@ const PUBLIC_PATHS = [
   "/api",
 ];
 
-// NEW: allow static files from /public by extension
-const STATIC_FILE_REGEX =
-  /\.(?:png|jpe?g|webp|gif|svg|ico|txt|xml|json|woff2?|ttf|otf|eot|mp4|webm)$/i;
 
 const isPublic = (p: string) =>
   PUBLIC_PATHS.some((x) => p === x || p.startsWith(x + "/"));
@@ -35,11 +32,15 @@ const isPublic = (p: string) =>
 export async function middleware(req: NextRequest) {
   const { pathname, origin } = req.nextUrl;
 
-  // ✅ Skip marketing/public routes
-  if (isPublic(pathname)) return NextResponse.next();
-
-  // ✅ Skip any request for a static file in /public
-  if (STATIC_FILE_REGEX.test(pathname)) return NextResponse.next();
+  // NEW: Skip static files (anything with an extension), Next.js assets, images, etc.
+  if (
+    pathname.startsWith("/_next") ||
+    pathname === "/favicon.ico" ||
+    pathname.includes(".") || // <-- /data/*.json, images, css, etc.
+    isPublic(pathname)
+  ) {
+    return NextResponse.next();
+  }
 
   const res = NextResponse.next();
 
@@ -49,10 +50,10 @@ export async function middleware(req: NextRequest) {
     {
       cookies: {
         get: (name: string) => req.cookies.get(name)?.value,
-        set(name: string, value: string, options: CookieOptions) {
+        set: (name: string, value: string, options: CookieOptions) => {
           res.cookies.set({ name, value, ...options });
         },
-        remove(name: string, options: CookieOptions) {
+        remove: (name: string, options: CookieOptions) => {
           res.cookies.set({ name, value: "", ...options, maxAge: 0 });
         },
       },
@@ -60,7 +61,9 @@ export async function middleware(req: NextRequest) {
   );
 
   const { data } = await supa.auth.getUser();
-  if (!data?.user) return NextResponse.redirect(new URL("/auth", origin));
+  if (!data?.user) {
+    return NextResponse.redirect(new URL("/auth", origin));
+  }
 
   return res;
 }

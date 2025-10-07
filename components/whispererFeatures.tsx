@@ -4,18 +4,17 @@
 import Link from "next/link";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 
-
 type Item = {
   key: string;
-  label: string;      // left pills
-  title: string;      // right h3
-  body: string;       // right body
-  imageSrc: string;   // middle image
+  label: string;
+  title: string;
+  body: string;
+  imageSrc: string;
   imageAlt?: string;
 };
 
 type DataShape = {
-  heading?: string;                          // H1
+  heading?: string;
   cta?: { label: string; href: string } | null;
   initialKey?: string;
   items: Item[];
@@ -75,19 +74,32 @@ export default function WhispererFeatures({
   const [loading, setL] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Fetch JSON (optional)
+  // Fetch JSON (hardened against HTML/redirects)
   useEffect(() => {
     let cancelled = false;
     (async () => {
+      if (!src) {
+        setL(false);
+        return;
+      }
       try {
         setL(true);
         setError(null);
+
         const res = await fetch(src, { cache: "no-store" });
-        if (!res.ok) throw new Error(`Failed to load ${src} (${res.status})`);
+        const ct = (res.headers.get("content-type") || "").toLowerCase();
+
+        if (!res.ok || !ct.includes("application/json")) {
+          // If auth/middleware returns HTML, avoid JSON.parse on "<!DOCTYPE ...>"
+          throw new Error(`Failed to load ${src} (${res.status})`);
+        }
+
         const json = (await res.json()) as DataShape;
         if (!cancelled) setData(json);
       } catch (e: any) {
-        if (!cancelled) setError(e?.message ?? "Failed to load features");
+        if (!cancelled) {
+          setError(e?.message ?? "Failed to load features");
+        }
       } finally {
         if (!cancelled) setL(false);
       }
@@ -108,7 +120,6 @@ export default function WhispererFeatures({
     merged.initialKey || merged.items[0]?.key
   );
 
-  // keep active key valid when JSON arrives
   useEffect(() => {
     if (!merged.items.find((i) => i.key === activeKey)) {
       setActiveKey(merged.initialKey || merged.items[0]?.key);
@@ -147,7 +158,7 @@ export default function WhispererFeatures({
           {merged.cta && (
             <Reveal delay={120}>
               <Link
-                href="/demo" // force /demo
+                href="/demo"
                 className="inline-flex items-center rounded-xl bg-gradient-to-r from-[var(--primaryFrom,#6A0DAD)] to-[var(--primaryTo,#8B4AD7)] px-5 py-3 text-sm font-semibold text-white shadow hover:shadow-md"
               >
                 {merged.cta.label}
@@ -158,42 +169,37 @@ export default function WhispererFeatures({
 
         {/* Content card */}
         <div className="mt-6 rounded-2xl border border-[var(--border,#e5e7eb)] bg-white p-4 sm:p-6 animate-[wf_card_.35s_ease]">
-          {/* Mobile-first: stack layout; at md+ switch to 3 columns */}
           <div className="grid grid-cols-1 gap-6 md:grid-cols-[minmax(220px,260px)_minmax(280px,40%)_1fr] md:items-stretch">
-            {/* 1) Pills (mobile: horizontal scroll) */}
+            {/* Pills */}
             <aside className="rounded-xl border border-[var(--border,#e5e7eb)] bg-[var(--surface,#fafafa)] md:bg-white p-2 sm:p-3 md:p-4">
-                  {/* Mobile pill scroller with arrows */}
-                  <MobilePillScroller
-                    items={merged.items}
-                    activeKey={activeKey}
-                    onSelect={setActiveKey}
-                  />
+              <MobilePillScroller
+                items={merged.items}
+                activeKey={activeKey}
+                onSelect={setActiveKey}
+              />
+              <div className="hidden md:block space-y-3">
+                {merged.items.map((it) => {
+                  const isActive = it.key === activeKey;
+                  return (
+                    <button
+                      key={it.key}
+                      onClick={() => setActiveKey(it.key)}
+                      className={
+                        "w-full rounded-lg border px-4 py-3 text-left text-sm font-medium outline-none transition focus:ring-2 focus:ring-[var(--primaryTo,#8B4AD7)]/40 " +
+                        (isActive
+                          ? "border-transparent bg-gradient-to-r from-[var(--primaryFrom,#6A0DAD)] to-[var(--primaryTo,#8B4AD7)] text-white shadow"
+                          : "border-[var(--border,#e5e7eb)] bg-white text-[var(--text,#0f172a)] hover:bg-[var(--surfaceAccent,#f6f6fb)]")
+                      }
+                      aria-pressed={isActive}
+                    >
+                      {it.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </aside>
 
-                  {/* Desktop/Tablet vertical menu */}
-                  <div className="hidden md:block space-y-3">
-                    {merged.items.map((it) => {
-                      const isActive = it.key === activeKey;
-                      return (
-                        <button
-                          key={it.key}
-                          onClick={() => setActiveKey(it.key)}
-                          className={
-                            "w-full rounded-lg border px-4 py-3 text-left text-sm font-medium outline-none transition focus:ring-2 focus:ring-[var(--primaryTo,#8B4AD7)]/40 " +
-                            (isActive
-                              ? "border-transparent bg-gradient-to-r from-[var(--primaryFrom,#6A0DAD)] to-[var(--primaryTo,#8B4AD7)] text-white shadow"
-                              : "border-[var(--border,#e5e7eb)] bg-white text-[var(--text,#0f172a)] hover:bg-[var(--surfaceAccent,#f6f6fb)]")
-                          }
-                          aria-pressed={isActive}
-                        >
-                          {it.label}
-                        </button>
-                      );
-                    })}
-                  </div>
-             </aside>
-
-
-            {/* 2) Image */}
+            {/* Image */}
             <div className="rounded-xl border border-[var(--border,#e5e7eb)] overflow-hidden h-[260px] sm:h-[320px] md:h-auto">
               {active && (
                 <img
@@ -205,7 +211,7 @@ export default function WhispererFeatures({
               )}
             </div>
 
-            {/* 3) Text */}
+            {/* Text */}
             <div className="flex flex-col justify-center px-1 sm:px-2">
               {active && (
                 <>
@@ -230,6 +236,8 @@ export default function WhispererFeatures({
     </section>
   );
 }
+
+/* Mobile pill scroller (with arrows) */
 function MobilePillScroller({
   items,
   activeKey,
@@ -270,7 +278,6 @@ function MobilePillScroller({
 
   return (
     <div className="relative md:hidden -mx-2">
-      {/* left gradient + arrow */}
       {!atStart && (
         <>
           <div className="pointer-events-none absolute left-0 top-0 h-full w-8 bg-gradient-to-r from-white to-transparent" />
@@ -287,7 +294,6 @@ function MobilePillScroller({
         </>
       )}
 
-      {/* right gradient + arrow */}
       {!atEnd && (
         <>
           <div className="pointer-events-none absolute right-0 top-0 h-full w-8 bg-gradient-to-l from-white to-transparent" />
@@ -304,7 +310,6 @@ function MobilePillScroller({
         </>
       )}
 
-      {/* the scroller */}
       <div
         ref={ref}
         className="overflow-x-auto pb-1 px-2 scroll-smooth no-scrollbar"
