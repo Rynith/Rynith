@@ -2,7 +2,6 @@
 "use client";
 
 import { useState } from "react";
-import Script from "next/script";
 import Link from "next/link";
 
 export default function ContactPage() {
@@ -16,7 +15,6 @@ export default function ContactPage() {
     setSubmitting(true);
 
     const fd = new FormData(e.currentTarget);
-    // Honeypot
     if (honeypot.trim()) {
       setMsg("Thanks! We’ll get back to you shortly.");
       (e.currentTarget as HTMLFormElement).reset();
@@ -32,9 +30,7 @@ export default function ContactPage() {
         body: JSON.stringify(payload),
       });
       if (!res.ok) {
-        const { error } = await res
-          .json()
-          .catch(() => ({ error: "Failed to submit" }));
+        const { error } = await res.json().catch(() => ({ error: "Failed to submit" }));
         throw new Error(error || `Request failed: ${res.status}`);
       }
       setMsg("Thanks! We’ll get back to you shortly.");
@@ -47,55 +43,70 @@ export default function ContactPage() {
   }
 
   return (
-    <main className="relative min-h-[92vh] overflow-hidden bg-[linear-gradient(180deg,#faf8ff,white)]">
-      {/* Decorative background blobs (inspired by the reference) */}
+    <main
+      className="relative min-h-[92vh]"
+      style={{
+        background:
+          "linear-gradient(180deg, var(--bg-soft) 0%, var(--bg) 100%)",
+      }}
+    >
+      {/* BRAND SOFT GLOW */}
       <div
         aria-hidden
-        className="pointer-events-none absolute -left-20 -top-24 h-72 w-72 rounded-3xl rotate-12 bg-[#8B4AD7] opacity-20 blur-2xl"
+        className="pointer-events-none absolute -left-24 -top-24 h-72 w-72 rounded-[36px]"
+        style={{
+          background: "var(--primary)",
+          opacity: 0.12,
+          filter: "blur(48px)",
+        }}
       />
       <div
         aria-hidden
-        className="pointer-events-none absolute -right-24 -top-10 h-64 w-64 rounded-full bg-[#FFB020] opacity-20 blur-2xl"
-      />
-      <div
-        aria-hidden
-        className="pointer-events-none absolute -left-10 bottom-10 h-56 w-56 rounded-3xl -rotate-12 bg-[#1FB6FF] opacity-20 blur-2xl"
-      />
-      <div
-        aria-hidden
-        className="pointer-events-none absolute right-10 bottom-16 h-80 w-80 rounded-[40px] bg-[#F472B6] opacity-20 blur-2xl"
+        className="pointer-events-none absolute -right-20 -top-10 h-56 w-56 rounded-full"
+        style={{
+          background: "var(--primary-to)",
+          opacity: 0.12,
+          filter: "blur(44px)",
+        }}
       />
 
-      <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 py-12">
+      <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 py-10">
         {/* Header */}
         <div className="mb-8 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <img
-              src="/assets/logos/rynith-logo.png"
-              alt="Rynith"
-              className="h-7 w-auto"
-            />
-            <span className="text-lg font-semibold">Rynith</span>
+            <img src="/assets/logos/rynith-logo.png" alt="Rynith" className="h-7 w-auto" />
+            <span className="text-lg font-semibold" style={{ color: "var(--text)" }}>
+              Rynith
+            </span>
           </div>
           <Link
             href="/"
-            className="text-sm font-medium text-gray-900] hover:text-[#6A0DAD]"
+            className="text-sm font-medium"
+            style={{ color: "var(--text)", opacity: 0.85 }}
           >
             Back to Home →
           </Link>
         </div>
 
-        {/* Card */}
-        <div className="grid gap-8 rounded-2xl border border-[var(--border,#e5e7eb)] bg-white p-4 sm:p-6 lg:grid-cols-2">
-          {/* LEFT: Form */}
-          <section className="rounded-2xl border border-[var(--border,#e5e7eb)] bg-white p-5 sm:p-7">
-            <h1 className="text-3xl font-semibold mb-1">Let’s talk</h1>
-            <p className="text-sm text-gray-900 mb-6">
-              Tell us what you’re building or the challenges you want to solve.
-              We’ll get back within 1 business day.
+        {/* Main Card */}
+        <div
+          className="grid gap-8 rounded-2xl p-4 sm:p-6 lg:grid-cols-2"
+          style={{ background: "var(--card)", border: "1px solid var(--border)" }}
+        >
+          {/* LEFT: FORM */}
+          <section
+            className="rounded-2xl p-6 sm:p-7"
+            style={{ background: "var(--card)", border: "1px solid var(--border)" }}
+          >
+            <h1 className="text-3xl font-semibold" style={{ color: "var(--text)" }}>
+              Let’s talk
+            </h1>
+            <p className="mt-1 text-sm" style={{ color: "var(--text)", opacity: 0.65 }}>
+              Tell us what you’re building or the challenges you want to solve. We’ll get back
+              within 1 business day.
             </p>
 
-            <form onSubmit={onSubmit} className="space-y-4">
+            <form onSubmit={onSubmit} className="mt-6 space-y-4">
               {/* Honeypot */}
               <input
                 name="website"
@@ -107,57 +118,36 @@ export default function ContactPage() {
               />
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-medium text-gray-600 mb-1">
-                    Full name
-                  </label>
-                  <input
-                    required
-                    name="name"
-                    className="w-full rounded-xl border border-[var(--border,#e5e7eb)] px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#6A0DAD]/30"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-gray-600 mb-1">
-                    Email
-                  </label>
-                  <input
-                    required
-                    type="email"
-                    name="email"
-                    className="w-full rounded-xl border border-[var(--border,#e5e7eb)] px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#6A0DAD]/30"
-                  />
-                </div>
+                <Field label="Full name">
+                  <Input name="name" required />
+                </Field>
+                <Field label="Email">
+                  <Input type="email" name="email" required />
+                </Field>
               </div>
 
-              <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1">
-                  Company
-                </label>
-                <input
-                  name="company"
-                  className="w-full rounded-xl border border-[var(--border,#e5e7eb)] px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#6A0DAD]/30"
-                />
-              </div>
+              <Field label="Company">
+                <Input name="company" />
+              </Field>
 
-              <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1">
-                  Message
-                </label>
-                <textarea
+              <Field label="Message">
+                <Textarea
                   name="message"
                   rows={6}
                   placeholder="What would you like to cover? Problems, goals, timelines."
-                  className="w-full rounded-xl border border-[var(--border,#e5e7eb)] px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#6A0DAD]/30"
                 />
-              </div>
+              </Field>
 
               <div className="flex items-center justify-between pt-2">
-                <label className="flex items-center gap-2 text-xs text-gray-600">
+                <label className="flex items-center gap-2 text-xs" style={{ color: "var(--text)", opacity: 0.7 }}>
                   <input
                     type="checkbox"
                     required
-                    className="rounded border-gray-300 text-[#6A0DAD] focus:ring-[#6A0DAD]"
+                    className="h-4 w-4 rounded"
+                    style={{
+                      accentColor: "var(--primary)",
+                      border: "1px solid var(--border)",
+                    }}
                   />
                   I accept the Terms & Privacy.
                 </label>
@@ -165,7 +155,12 @@ export default function ContactPage() {
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="inline-flex items-center justify-center rounded-xl px-5 py-3 text-sm font-semibold text-white shadow hover:shadow-md disabled:opacity-60 bg-gradient-to-r from-[#6A0DAD] to-[#8B4AD7]"
+                  className="inline-flex items-center justify-center rounded-xl px-5 py-3 text-sm font-semibold color: var(--text) transition"
+                  style={{
+                    background: "linear-gradient(90deg, var(--primary), var(--primary-to))",
+                    boxShadow: "0 10px 24px rgba(103,77,249,.22)",
+                    opacity: submitting ? 0.7 : 1,
+                  }}
                 >
                   {submitting ? "Sending…" : "Send message"}
                 </button>
@@ -173,11 +168,20 @@ export default function ContactPage() {
 
               {msg && (
                 <p
-                  className={`mt-3 text-sm ${
+                  className="mt-3 text-sm border rounded-lg px-3 py-2"
+                  style={
                     /thanks/i.test(msg)
-                      ? "text-green-700 bg-green-50 border-green-200"
-                      : "text-red-700 bg-red-50 border-red-200"
-                  } border rounded-lg px-3 py-2`}
+                      ? {
+                          color: "#166534",
+                          background: "#ECFDF5",
+                          borderColor: "#A7F3D0",
+                        }
+                      : {
+                          color: "#991B1B",
+                          background: "#FEF2F2",
+                          borderColor: "#FECACA",
+                        }
+                  }
                 >
                   {msg}
                 </p>
@@ -185,67 +189,97 @@ export default function ContactPage() {
             </form>
           </section>
 
-          {/* RIGHT: Info / Highlights */}
-          <aside className="relative overflow-hidden rounded-2xl border border-[var(--border,#e5e7eb)] bg-white">
-            {/* blue panel */}
-            <div className="absolute right-6 top-6 rounded-2xl bg-[#1FB6FF] text-white px-5 py-4 shadow-md">
-              <p className="text-sm font-semibold">
-                Simple tech, powerful outcomes
+          {/* RIGHT: BRAND / HIGHLIGHTS */}
+          <aside
+            className="relative overflow-hidden rounded-2xl"
+            style={{ background: "var(--card)", border: "1px solid var(--border)" }}
+          >
+            {/* Brand Panel */}
+            <div
+              className="m-6 rounded-2xl p-5 var(--text)"
+              style={{
+                background: "linear-gradient(90deg, var(--primary), var(--primary-to))",
+              }}
+            >
+              <p className="text-sm font-semibold">Rynith makes feedback actionable</p>
+              <p className="mt-1 text-xs/5 opacity-95">
+                Turn reviews and messages into summaries, alerts, and playbooks your team can act on.
               </p>
-              <p className="mt-1 text-xs/5 opacity-90">
-                We turn raw feedback into actions—summaries, alerts, and
-                playbooks that lift CSAT.
-              </p>
-              <div className="mt-3 text-xs space-y-1 opacity-90">
+              <div className="mt-3 text-xs space-y-1 opacity-95">
                 <div>✉︎ hello@rynith.com</div>
                 <div>🕑 Mon–Fri, 9am–6pm</div>
               </div>
             </div>
 
-            {/* preview widgets */}
-            <div className="p-6 grid gap-5">
-              <div className="rounded-xl border border-[var(--border,#e5e7eb)] bg-white p-4 shadow-sm">
-                <p className="text-sm font-medium">Checklist setup</p>
-                <div className="mt-3 grid grid-cols-3 gap-3 text-xs">
-                  <div className="rounded-lg border p-3">Connect sources</div>
-                  <div className="rounded-lg border p-3">Enable alerts</div>
-                  <div className="rounded-lg border p-3">Invite team</div>
+            <div className="px-6 pb-6 grid gap-5">
+              {/* Setup chips */}
+              <div
+                className="rounded-xl p-4 shadow-sm"
+                style={{ background: "var(--card)", border: "1px solid var(--border)" }}
+              >
+                <p className="text-sm font-medium" style={{ color: "var(--text)" }}>
+                  Checklist setup
+                </p>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <Chip>Connect sources</Chip>
+                  <Chip>Enable alerts</Chip>
+                  <Chip>Invite team</Chip>
                 </div>
               </div>
 
-              <div className="rounded-xl border border-[var(--border,#e5e7eb)] bg-white p-4 shadow-sm">
-                <p className="text-sm font-medium mb-2">Weekly insights</p>
+              {/* Bars */}
+              <div
+                className="rounded-xl p-4 shadow-sm"
+                style={{ background: "var(--card)", border: "1px solid var(--border)" }}
+              >
+                <p className="text-sm font-medium mb-2" style={{ color: "var(--text)" }}>
+                  Weekly insights
+                </p>
                 <div className="flex items-end gap-2 h-24">
                   {[36, 50, 44, 68, 72, 66, 80].map((h, i) => (
                     <div
                       key={i}
-                      className="w-4 rounded-t bg-gradient-to-b from-[#8B4AD7] to-[#6A0DAD]"
-                      style={{ height: `${h}%` }}
+                      className="w-4 rounded-t"
+                      style={{
+                        height: `${h}%`,
+                        background: "linear-gradient(180deg, var(--primary-to), var(--primary))",
+                      }}
                     />
                   ))}
                 </div>
               </div>
 
-              <div className="rounded-xl border border-[var(--border,#e5e7eb)] bg-white p-4 shadow-sm flex items-center justify-between">
+              {/* KPI */}
+              <div
+                className="rounded-xl p-4 shadow-sm flex items-center justify-between"
+                style={{ background: "var(--card)", border: "1px solid var(--border)" }}
+              >
                 <div>
-                  <p className="text-sm font-medium">Avg response time</p>
-                  <p className="text-2xl font-semibold mt-1">3m 12s</p>
+                  <p className="text-sm font-medium" style={{ color: "var(--text)" }}>
+                    Avg response time
+                  </p>
+                  <p className="text-2xl font-semibold mt-1" style={{ color: "var(--text)" }}>
+                    3m 12s
+                  </p>
                 </div>
-                <div className="rounded-full bg-[#FFB020]/15 text-[#FFB020] px-3 py-1 text-xs font-medium">
+                <span
+                  className="rounded-full px-3 py-1 text-xs font-medium"
+                  style={{
+                    color: "#B45309", // amber-700
+                    background: "#FEF3C7", // amber-100
+                  }}
+                >
                   -18% this week
-                </div>
+                </span>
               </div>
             </div>
           </aside>
         </div>
 
-        {/* Footer helper (matches your footer link) */}
-        <p className="mt-6 text-center text-sm text-gray-900">
+        {/* Footer helper */}
+        <p className="mt-6 text-center text-sm" style={{ color: "var(--text)", opacity: 0.7 }}>
           Prefer a quick chat?{" "}
-          <Link
-            href="/demo"
-            className="font-medium text-[#6A0DAD] hover:underline"
-          >
+          <Link href="/demo" className="font-medium" style={{ color: "var(--primary)" }}>
             Book a demo
           </Link>
         </p>
@@ -253,3 +287,66 @@ export default function ContactPage() {
     </main>
   );
 }
+
+/* ---- helpers (styled with CSS vars) ---- */
+function Field({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div>
+      <label className="block text-xs font-medium mb-1" style={{ color: "var(--text)", opacity: 0.7 }}>
+        {label}
+      </label>
+      {children}
+    </div>
+  );
+}
+
+function Input(props: React.InputHTMLAttributes<HTMLInputElement>) {
+  return (
+    <input
+      {...props}
+      className="w-full rounded-xl px-3 py-2 text-sm outline-none transition"
+      style={{
+        background: "var(--card)",
+        color: "var(--text)",
+        border: "1px solid var(--border)",
+        boxShadow: "0 1px 0 rgba(0,0,0,0.02) inset",
+      }}
+      onFocus={(e) => (e.currentTarget.style.boxShadow = "0 0 0 3px rgba(103,77,249,.25)")}
+      onBlur={(e) => (e.currentTarget.style.boxShadow = "0 1px 0 rgba(0,0,0,0.02) inset")}
+    />
+  );
+}
+
+function Textarea(props: React.TextareaHTMLAttributes<HTMLTextAreaElement>) {
+  return (
+    <textarea
+      {...props}
+      className="w-full rounded-xl px-3 py-2 text-sm outline-none transition"
+      style={{
+        background: "var(--card)",
+        color: "var(--text)",
+        border: "1px solid var(--border)",
+        boxShadow: "0 1px 0 rgba(0,0,0,0.02) inset",
+      }}
+      onFocus={(e) => (e.currentTarget.style.boxShadow = "0 0 0 3px rgba(103,77,249,.25)")}
+      onBlur={(e) => (e.currentTarget.style.boxShadow = "0 1px 0 rgba(0,0,0,0.02) inset")}
+    />
+  );
+}
+
+function Chip({ children }: { children: React.ReactNode }) {
+  return (
+    <div
+      className="rounded-full px-3 py-1.5 text-xs"
+      style={{
+        color: "var(--text)",
+        opacity: 0.9,
+        background: "var(--bg-soft)",
+        border: "1px solid var(--border)",
+      }}
+    >
+      {children}
+    </div>
+  );
+}
+

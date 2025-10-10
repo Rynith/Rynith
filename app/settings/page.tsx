@@ -31,15 +31,16 @@ const NAV = [
   { tab: "notifications", label: "Notifications", icon: "🔔" },
   { tab: "integrations", label: "Integrations", icon: "🧩" },
 ];
+  type SettingsSearchParams = { tab?: string };
 
-export default async function SettingsPage({
-  searchParams,
-}: {
-  searchParams?: { tab?: string };
-}) {
-  const tab = (searchParams?.tab || "integrations").toLowerCase();
+export default async function SettingsPage(
+  { searchParams }: { searchParams: Promise<SettingsSearchParams> }
+) {
+  const sp = await searchParams;                    // ✅ await first
+  const tab = (sp?.tab || "integrations").toLowerCase();
 
   const supabase = await supabaseServer();
+
 
   // Auth
   const {
@@ -72,6 +73,7 @@ export default async function SettingsPage({
   }
 
   const linkFor = (t: string) => `/settings?tab=${encodeURIComponent(t)}`;
+
 
   return (
     <div className="min-h-screen bg-[#F4F4F8]">

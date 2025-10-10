@@ -1,127 +1,271 @@
-@import 'tailwindcss';
-@import 'tw-animate-css';
-
-@custom-variant dark (&:is(.dark *));
-
+/* ==========================================
+   🎨 RYNITH COLOR SYSTEM — LIGHT, LEGIBLE
+   ========================================== */
 :root {
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --destructive-foreground: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
-  --chart-1: oklch(0.646 0.222 41.116);
-  --chart-2: oklch(0.6 0.118 184.704);
-  --chart-3: oklch(0.398 0.07 227.392);
-  --chart-4: oklch(0.828 0.189 84.429);
-  --chart-5: oklch(0.769 0.188 70.08);
-  --radius: 0.625rem;
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
+  /* Force light UI for the UA */
+  color-scheme: light;
+
+  /* --- Brand --- */
+  --primary: #674DF9;
+  --primary-hover: #5536E6;
+  --primary-to: #7C65FB;
+  --primary-light: #ECE8FF;
+  /* light tint fill/hover */
+
+  /* Aliases used around the app */
+  --primaryFrom: var(--primary);
+  --primaryTo: var(--primary-to);
+
+  /* “Tailwind-like” tokens some code references */
+  --primary-50: #F4F2FF;
+  --primary-100: #EBE7FF;
+  --primary-300: #B4A7FF;
+  --primary-500: #7C65FB;
+  --primary-600: #674DF9;
+
+  --mint-100: #DEF9F3;
+  --amber-100: #FFF4DA;
+
+  /* --- Accents --- */
+  --accent-mint: #3EE6C0;
+  --accent-amber: #FEC84B;
+  --accent-coral: #FF7A7A;
+
+  /* --- Ink / Text --- */
+  --ink-900: #0F172A;
+  /* headings */
+  --ink-800: #1E293B;
+  --ink-700: #334155;
+  /* body */
+  --ink-600: #475569;
+  /* subtext */
+  --ink-500: #64748B;
+  /* captions */
+
+  /* Legacy aliases (still used in components) */
+  --text: var(--ink-800);
+  --muted: var(--ink-600);
+
+  /* --- Surfaces --- */
+  --bg: #FFFFFF;
+  --bg-soft: #F8F7FF;
+  --card: #FFFFFF;
+  --border: #E6E6F2;
+
+  /* --- Gradients & Shadows --- */
+  --gradient-primary: linear-gradient(93deg, var(--primary) 0%, var(--primary-to) 100%);
+  --shadow-elevate: 0 8px 24px rgba(103, 77, 249, 0.18);
 }
 
-.dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.145 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.145 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.985 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.396 0.141 25.723);
-  --destructive-foreground: oklch(0.637 0.237 25.331);
-  --border: oklch(0.269 0 0);
-  --input: oklch(0.269 0 0);
-  --ring: oklch(0.439 0 0);
-  --chart-1: oklch(0.488 0.243 264.376);
-  --chart-2: oklch(0.696 0.17 162.48);
-  --chart-3: oklch(0.769 0.188 70.08);
-  --chart-4: oklch(0.627 0.265 303.9);
-  --chart-5: oklch(0.645 0.246 16.439);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(0.269 0 0);
-  --sidebar-ring: oklch(0.439 0 0);
-}
+/* 🚫 Remove auto-dark. If you kept a dark block before, this keeps light tokens even on dark OS. */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #FFFFFF;
+    --bg-soft: #F8F7FF;
+    --card: #FFFFFF;
+    --border: #E6E6F2;
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --color-card: var(--card);
-  --color-card-foreground: var(--card-foreground);
-  --color-popover: var(--popover);
-  --color-popover-foreground: var(--popover-foreground);
-  --color-primary: var(--primary);
-  --color-primary-foreground: var(--primary-foreground);
-  --color-secondary: var(--secondary);
-  --color-secondary-foreground: var(--secondary-foreground);
-  --color-muted: var(--muted);
-  --color-muted-foreground: var(--muted-foreground);
-  --color-accent: var(--accent);
-  --color-accent-foreground: var(--accent-foreground);
-  --color-destructive: var(--destructive);
-  --color-destructive-foreground: var(--destructive-foreground);
-  --color-border: var(--border);
-  --color-input: var(--input);
-  --color-ring: var(--ring);
-  --color-chart-1: var(--chart-1);
-  --color-chart-2: var(--chart-2);
-  --color-chart-3: var(--chart-3);
-  --color-chart-4: var(--chart-4);
-  --color-chart-5: var(--chart-5);
-  --radius-sm: calc(var(--radius) - 4px);
-  --radius-md: calc(var(--radius) - 2px);
-  --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) + 4px);
-  --color-sidebar: var(--sidebar);
-  --color-sidebar-foreground: var(--sidebar-foreground);
-  --color-sidebar-primary: var(--sidebar-primary);
-  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
-  --color-sidebar-accent: var(--sidebar-accent);
-  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
-  --color-sidebar-border: var(--sidebar-border);
-  --color-sidebar-ring: var(--sidebar-ring);
-}
+    --ink-900: #0F172A;
+    --ink-800: #1E293B;
+    --ink-700: #334155;
+    --ink-600: #475569;
+    --ink-500: #64748B;
 
-@layer base {
-  * {
-    @apply border-border outline-ring/50;
-  }
-  body {
-    @apply bg-background text-foreground;
+    --text: var(--ink-800);
+    --muted: var(--ink-600);
   }
 }
-/* globals.css */
+
+/* ==========================================
+   🧭 BASE TYPOGRAPHY
+   ========================================== */
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", sans-serif;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+h1,
+h2,
+h3,
+h4 {
+  color: var(--ink-900);
+  letter-spacing: -0.02em;
+}
+
+p,
+span,
+li {
+  color: var(--ink-700);
+  line-height: 1.65;
+}
+
+small {
+  color: var(--ink-600);
+}
+
+/* ==========================================
+   💎 BUTTONS — stronger specificity so utilities don’t wipe them
+   ========================================== */
+:where(button, a).btn-primary {
+  background: var(--gradient-primary) !important;
+  color: #fff !important;
+  border-radius: 12px;
+  padding: 0.75rem 1.25rem;
+  font-weight: 600;
+  border: 1px solid transparent;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: var(--shadow-elevate);
+  transition: transform .06s ease, box-shadow .2s ease, filter .2s ease;
+}
+
+:where(button, a).btn-primary:hover {
+  filter: brightness(1.05);
+  box-shadow: 0 10px 26px rgba(103, 77, 249, .25);
+}
+
+:where(button, a).btn-primary:active {
+  transform: translateY(1px);
+  box-shadow: 0 6px 18px rgba(103, 77, 249, .22);
+}
+
+/* Outline */
+:where(button, a).btn-outline {
+  border: 1px solid var(--primary) !important;
+  background: var(--bg) !important;
+  color: var(--primary) !important;
+  border-radius: 12px;
+  padding: 0.65rem 1.1rem;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: background .2s ease, color .2s ease, border-color .2s ease;
+}
+
+:where(button, a).btn-outline:hover {
+  background: var(--primary-light) !important;
+  color: var(--primary-hover) !important;
+  border-color: var(--primary-hover) !important;
+}
+
+/* “Cool” CTA gradient */
+:where(button, a).btn-primary-cool {
+  background: linear-gradient(93deg, var(--primary) 0%, var(--primary-to) 55%, var(--accent-mint) 115%) !important;
+  color: #fff !important;
+  border-radius: 12px;
+  padding: .75rem 1.25rem;
+  font-weight: 600;
+  border: 1px solid color-mix(in srgb, var(--primary) 35%, transparent);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 8px 24px rgba(103, 77, 249, .18);
+  transition: filter .2s ease, box-shadow .2s ease, transform .06s ease;
+}
+
+:where(button, a).btn-primary-cool:hover {
+  filter: brightness(1.06);
+  box-shadow: 0 10px 28px rgba(103, 77, 249, .24);
+}
+
+:where(button, a).btn-primary-cool:active {
+  transform: translateY(1px);
+}
+
+:where(button, a).btn-primary-cool[disabled],
+:where(button, a).btn-primary-cool[aria-disabled="true"] {
+  opacity: .6;
+  cursor: not-allowed;
+}
+
+/* ==========================================
+   🪄 SURFACES & BADGES
+   ========================================== */
+.card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  box-shadow: 0 8px 24px rgba(17, 12, 46, .06);
+  transition: transform .15s ease, box-shadow .15s ease;
+}
+
+.card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 28px rgba(17, 12, 46, .08);
+}
+
+.badge-amber {
+  background: color-mix(in srgb, var(--accent-amber) 18%, transparent);
+  color: var(--accent-amber);
+  border-radius: 999px;
+  padding: .25rem .6rem;
+  font-size: .75rem;
+  font-weight: 500;
+}
+
+.badge-mint {
+  background: color-mix(in srgb, var(--accent-mint) 18%, transparent);
+  color: var(--accent-mint);
+  border-radius: 999px;
+  padding: .25rem .6rem;
+  font-size: .75rem;
+  font-weight: 500;
+}
+
+.badge-coral {
+  background: color-mix(in srgb, var(--accent-coral) 18%, transparent);
+  color: var(--accent-coral);
+  border-radius: 999px;
+  padding: .25rem .6rem;
+  font-size: .75rem;
+  font-weight: 500;
+}
+
+/* ==========================================
+   ✨ TEXT HELPERS
+   ========================================== */
+.text-muted {
+  color: var(--muted);
+}
+
+.text-subtle {
+  color: var(--ink-500);
+}
+
+.text-strong {
+  color: var(--ink-900);
+}
+
+.text-brand {
+  color: var(--primary);
+}
+
+/* ==========================================
+   🌈 BG HELPERS
+   ========================================== */
+.bg-brand-gradient {
+  background: var(--gradient-primary);
+  color: #fff;
+}
+
+.bg-soft {
+  background: var(--bg-soft);
+}
+
+.bg-tinted {
+  background: linear-gradient(180deg, var(--primary-light), transparent 80%);
+}
+
+/* Scrollbar helper */
 .no-scrollbar::-webkit-scrollbar {
   display: none;
 }

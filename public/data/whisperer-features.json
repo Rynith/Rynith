@@ -7,7 +7,7 @@
       "key": "summaries",
       "label": "AI-Powered Insights",
       "title": "Instant summaries your team can trust",
-      "body": "Rynith condenses long email and chat threads into crisp, actionable notes tone, intent, blockers, and next steps. so agents jump in with context.",
+      "body": "Rynith condenses long email and chat threads into crisp, actionable notes—tone, intent, blockers, and next steps—so agents jump in with context.",
       "imageSrc": "/dashboard44.png",
       "imageAlt": "AI thread summary UI"
     },
@@ -21,18 +21,18 @@
     },
     {
       "key": "routing",
-      "label": "Automated Reports & Dashboards",
+      "label": "Automated Routing",
       "title": "Route to the best team and trigger the right actions",
       "body": "Classify by product, topic, and customer tier. Fire the correct macro, attach knowledge links, and hand off to the right queue automatically.",
-      "imageSrc": "/dashboard 6.png",
+      "imageSrc": "/dashboard6.png",
       "imageAlt": "Automated routing with macros"
     },
     {
       "key": "insights",
-      "label": "Customer 360 insights",
+      "label": "Customer 360 Insights",
       "title": "Turn conversations into product & CX insights",
       "body": "Roll up themes, top issues, and feature requests across channels. Share dashboards that help product and ops teams prioritize the right fixes.",
-      "imageSrc": "insights.png",
+      "imageSrc": "/insights.png",
       "imageAlt": "Aggregated insights and trends"
     }
   ]

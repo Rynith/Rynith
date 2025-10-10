@@ -43,10 +43,10 @@ function Reveal({ children, delay = 0 }: { children: ReactNode; delay?: number }
 
 export default function CommunityCTA1({
   id = 'community',
-  title = 'Turn feedback into fuel Join the community',
-  subtitle = 'Weekly playbooks, templates, and beta invites to turn customer feedback into action,Cut handle time and raise CSAT.',
+  title = 'Turn feedback into fuel. Join the community.',
+  subtitle = 'Weekly playbooks, templates, and beta invites. Turn customer feedback into action, cut handle time, and raise CSAT.',
   backgroundUrl,
-  features = ['No credit card is required', 'Early access & Special offers'],
+  features = ['No credit card required', 'Early access & special offers'],
   onSubmit,
 }: Props) {
   const [email, setEmail] = useState('');
@@ -59,15 +59,15 @@ export default function CommunityCTA1({
     setErr(null);
     setOk(false);
 
-    const good = /\S+@\S+\.\S+/.test(email);
+    const good = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
     if (!good) {
-      setErr('Please enter a valid email address');
+      setErr('Please enter a valid email address.');
       return;
     }
 
     try {
       setBusy(true);
-      if (onSubmit) await onSubmit(email);
+      if (onSubmit) await onSubmit(email.trim());
       setOk(true);
       setEmail('');
     } catch {
@@ -79,6 +79,7 @@ export default function CommunityCTA1({
 
   return (
     <section id={id} className="relative py-24">
+      {/* Optional background image with gradient veil */}
       {backgroundUrl && (
         <>
           <div
@@ -95,48 +96,59 @@ export default function CommunityCTA1({
 
       <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8 text-center">
         <Reveal>
-          <h2 className="text-3xl sm:text-5xl font-semibold">{title}</h2>
+          <h2 className="text-3xl sm:text-5xl font-semibold text-[var(--ink-900)]">
+            {title}
+          </h2>
         </Reveal>
+
         <Reveal delay={120}>
-          <p className="mt-4 text-[var(--muted)]">{subtitle}</p>
+          <p className="mt-4 text-base sm:text-lg text-[var(--ink-700)]">
+            {subtitle}
+          </p>
         </Reveal>
 
         <Reveal delay={200}>
           <form onSubmit={handleSubmit} className="mt-8 mx-auto flex max-w-2xl items-stretch gap-2">
+            {/* Accessible label for screen readers */}
+            <label htmlFor="cta-email" className="sr-only">Email address</label>
             <input
+              id="cta-email"
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               aria-invalid={!!err}
               aria-describedby={err ? 'email-error' : undefined}
               placeholder="Enter your email"
-              className="flex-1 rounded-xl border border-[var(--border)] bg-white px-4 py-3 text-[var(--text)] outline-none focus:ring-2 focus:ring-[var(--primaryTo)]"
+              className="flex-1 rounded-xl border border-[var(--border)] bg-[var(--card)] px-4 py-3 text-[var(--text)] placeholder-[var(--ink-500)] outline-none focus:ring-2 focus:ring-[var(--primary-to)]"
             />
+
             <button
               type="submit"
               disabled={busy}
-              className="rounded-xl bg-gradient-to-r from-[var(--primaryFrom)] to-[var(--primaryTo)] px-5 py-3 text-sm font-semibold text-white shadow transition hover:shadow-md disabled:opacity-70"
+              aria-busy={busy}
+              className="btn-primary-cool px-5 py-3"
             >
               {busy ? 'Submitting…' : 'Submit'}
             </button>
           </form>
+
           {!!err && (
-            <p id="email-error" className="mt-2 text-sm text-red-600">
+            <p id="email-error" className="mt-2 text-sm text-[#B91C1C]">
               {err}
             </p>
           )}
           {ok && (
-            <p className="mt-2 text-sm text-green-600">
+            <p className="mt-2 text-sm text-[#0F766E]">
               Thanks! Please check your inbox to confirm your subscription.
             </p>
           )}
         </Reveal>
 
         <Reveal delay={260}>
-          <ul className="mt-6 flex flex-wrap items-center justify-center gap-6 text-sm text-[var(--muted)]">
+          <ul className="mt-6 flex flex-wrap items-center justify-center gap-6 text-sm text-[var(--ink-600)]">
             {features.map((f) => (
               <li key={f} className="flex items-center gap-2">
-                <span className="inline-block h-2.5 w-2.5 rounded-full bg-[var(--primaryTo)]" />
+                <span className="inline-block h-2.5 w-2.5 rounded-full bg-[var(--primary-to)]" />
                 {f}
               </li>
             ))}
