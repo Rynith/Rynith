@@ -1,4 +1,3 @@
-# .github/workflows/weekly-digest.yml
 name: Weekly Digest Cron
 
 on:
@@ -14,45 +13,53 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  run:
+  weekly_digest:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 10
+
+    env:
+      BASE_URL: ${{ secrets.RUN_ALERTS_URL }}        # e.g. https://www.rynith.com
+      INTERNAL_SYNC_KEY: ${{ secrets.INTERNAL_SYNC_KEY }}
+
     steps:
-      - name: Call /api/digest/run (with retries)
-        env:
-          RUN_DIGEST_URL: ${{ secrets.RUN_DIGEST_URL }}          # e.g. https://app.rynith.com/api/digest/run
-          INTERNAL_SYNC_KEY: ${{ secrets.INTERNAL_SYNC_KEY }}    # must match server env
+      - name: Run weekly digest (/api/alerts/run?digest=1) with retries
         run: |
           set -euo pipefail
 
-          if [ -z "${RUN_DIGEST_URL:-}" ] || [ -z "${INTERNAL_SYNC_KEY:-}" ]; then
-            echo "Missing RUN_DIGEST_URL or INTERNAL_SYNC_KEY repo secrets"
+          if [ -z "${BASE_URL:-}" ] || [ -z "${INTERNAL_SYNC_KEY:-}" ]; then
+            echo "❌ Missing BASE_URL or INTERNAL_SYNC_KEY in repo secrets"
             exit 1
           fi
 
-          echo "POST $RUN_DIGEST_URL"
+          TARGET="$BASE_URL/api/alerts/run?digest=1"
+          echo "▶️  POST $TARGET"
+
           attempt=0
           max=3
           until [ $attempt -ge $max ]
           do
             attempt=$((attempt+1))
+
             http_code=$(curl -sS -X POST \
               -H "x-internal-key: $INTERNAL_SYNC_KEY" \
+              -H "User-Agent: rynith-weekly-digest/1.0" \
+              --max-time 30 \
               -o response.json -w "%{http_code}" \
-              "$RUN_DIGEST_URL" || true)
+              "$TARGET" || true)
 
             echo "HTTP $http_code"
             cat response.json || true
             echo
 
-            if [ "$http_code" -ge 200 ] && [ "$http_code" -lt 400 ]; then
-              echo "Weekly digest OK"
+            # Only 2xx is success; fail on 3xx/4xx/5xx
+            if [ "$http_code" -ge 200 ] && [ "$http_code" -lt 300 ]; then
+              echo "✅ Weekly digest sent"
               exit 0
             fi
 
-            echo "Weekly digest failed (try $attempt/$max). Retrying in 10s…"
+            echo "⚠️  Weekly digest failed (try $attempt/$max). Retrying in 10s…"
             sleep 10
           done
 
-          echo "Weekly digest failed after $max attempts"
+          echo "❌ Weekly digest failed after $max attempts"
           exit 1
