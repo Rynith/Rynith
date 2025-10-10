@@ -54,7 +54,6 @@ export async function POST(req: Request) {
         "review_id:id, org_id, embedding, reviews!inner(id, org_id, published_at), review_analysis!left(sentiment, topics)"
       )
       .gte("reviews.published_at", sinceISO)
-      .order("reviews.published_at", { ascending: false })
       .limit(2000);
 
     const { data: rowsRaw, error } = onlyOrg
