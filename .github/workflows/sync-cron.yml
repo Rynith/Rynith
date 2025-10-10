@@ -2,7 +2,7 @@ name: Sources Sync Cron
 
 on:
   schedule:
-    - cron: '*/15 * * * *'   # every 15 minutes
+    - cron: "*/15 * * * *"   # every 15 minutes
   workflow_dispatch:         # allow manual run
 
 permissions:
@@ -16,27 +16,34 @@ jobs:
   sync:
     runs-on: ubuntu-latest
     timeout-minutes: 5
+
     steps:
-      - name: Call /api/sources/sync (with retries)
+      - name: POST /api/sources/sync (with retries)
         env:
-          RUN_SYNC_URL: ${{ secrets.RUN_SYNC_URL }}
-          INTERNAL_SYNC_KEY: ${{ secrets.INTERNAL_SYNC_KEY }}
+          RUN_SYNC_URL: ${{ secrets.RUN_SYNC_URL }}           # e.g. https://www.rynith.com/api/sources/sync
+          INTERNAL_SYNC_KEY: ${{ secrets.INTERNAL_SYNC_KEY }} # same key you used via curl
         run: |
           set -euo pipefail
 
           if [ -z "${RUN_SYNC_URL:-}" ] || [ -z "${INTERNAL_SYNC_KEY:-}" ]; then
-            echo "Missing RUN_SYNC_URL or INTERNAL_SYNC_KEY repo secrets"
+            echo "❌ Missing RUN_SYNC_URL or INTERNAL_SYNC_KEY repo secrets"
             exit 1
           fi
 
-          echo "POST $RUN_SYNC_URL"
+          echo "▶️  POST $RUN_SYNC_URL"
           attempt=0
           max=3
-          until [ $attempt -ge $max ]
-          do
+          sleep_s=10
+
+          until [ $attempt -ge $max ]; do
             attempt=$((attempt+1))
+
+            # Use a temp file so we can show body on failure without leaking headers
+            rm -f response.json || true
             http_code=$(curl -sS -X POST \
               -H "x-internal-key: $INTERNAL_SYNC_KEY" \
+              -H "User-Agent: rynith-sync-cron/1.0" \
+              --max-time 25 \
               -o response.json -w "%{http_code}" \
               "$RUN_SYNC_URL" || true)
 
@@ -44,14 +51,16 @@ jobs:
             cat response.json || true
             echo
 
-            if [ "$http_code" -lt 400 ] && [ "$http_code" -ge 200 ]; then
-              echo "Sync OK"
+            if [ "$http_code" -ge 200 ] && [ "$http_code" -lt 300 ]; then
+              echo "✅ Sync OK"
               exit 0
             fi
 
-            echo "Sync failed (try $attempt/$max). Retrying in 10s…"
-            sleep 10
+            if [ $attempt -lt $max ]; then
+              echo "⚠️  Sync failed (try $attempt/$max). Retrying in ${sleep_s}s…"
+              sleep $sleep_s
+            fi
           done
 
-          echo "Sync failed after $max attempts"
+          echo "❌ Sync failed after $max attempts"
           exit 1
