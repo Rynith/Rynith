@@ -2,34 +2,69 @@ name: Alerts Cron
 
 on:
   schedule:
-    # Hourly (UTC). GitHub Actions uses UTC regardless of repo timezone.
-    - cron: "0 * * * *"
+    - cron: "0 * * * *" # every hour (UTC)
   workflow_dispatch:
+
+permissions:
+  contents: read
 
 concurrency:
   group: alerts-cron
   cancel-in-progress: true
 
 jobs:
-  run:
+  alerts:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
-    permissions:
-      contents: read
-    env:
-      BASE: ${{ secrets.NEXT_PUBLIC_BASE_URL }}
-      INTERNAL_SYNC_KEY: ${{ secrets.INTERNAL_SYNC_KEY }}
-    steps:
-      - name: Generate today's alerts (/api/alerts/run)
-        run: |
-          set -euo pipefail
-          curl -sS -f --max-time 20 --retry 3 --retry-delay 5 \
-            -H "x-internal-key: $INTERNAL_SYNC_KEY" \
-            -X POST "$BASE/api/alerts/run"
+    timeout-minutes: 10
 
-      - name: Send alert emails (/api/alerts/email)
+    env:
+      BASE_URL: ${{ secrets.RUN_ALERTS_URL }}           # e.g. https://www.rynith.com
+      INTERNAL_SYNC_KEY: ${{ secrets.INTERNAL_SYNC_KEY }}
+
+    steps:
+      - name: Run /api/alerts/run
         run: |
           set -euo pipefail
-          curl -sS -f --max-time 20 --retry 3 --retry-delay 5 \
+          if [ -z "${BASE_URL:-}" ] || [ -z "${INTERNAL_SYNC_KEY:-}" ]; then
+            echo "❌ Missing BASE_URL or INTERNAL_SYNC_KEY in secrets"
+            exit 1
+          fi
+
+          echo "▶️  POST $BASE_URL/api/alerts/run"
+          http_code=$(curl -sS -X POST \
             -H "x-internal-key: $INTERNAL_SYNC_KEY" \
-            -X POST "$BASE/api/alerts/email"
+            -H "User-Agent: rynith-alerts-cron/1.0" \
+            --max-time 25 \
+            -o response.json -w "%{http_code}" \
+            "$BASE_URL/api/alerts/run" || true)
+
+          echo "HTTP $http_code"
+          cat response.json || true
+          echo
+
+          if [ "$http_code" -lt 200 ] || [ "$http_code" -ge 300 ]; then
+            echo "⚠️  Alerts run failed (HTTP $http_code)"
+            exit 1
+          fi
+          echo "✅ Alerts job complete"
+
+      - name: Run /api/alerts/email
+        run: |
+          set -euo pipefail
+          echo "▶️  POST $BASE_URL/api/alerts/email"
+          http_code=$(curl -sS -X POST \
+            -H "x-internal-key: $INTERNAL_SYNC_KEY" \
+            -H "User-Agent: rynith-alerts-cron/1.0" \
+            --max-time 25 \
+            -o response.json -w "%{http_code}" \
+            "$BASE_URL/api/alerts/email" || true)
+
+          echo "HTTP $http_code"
+          cat response.json || true
+          echo
+
+          if [ "$http_code" -lt 200 ] || [ "$http_code" -ge 300 ]; then
+            echo "⚠️  Email alert job failed (HTTP $http_code)"
+            exit 1
+          fi
+          echo "✅ Email alert job complete"
