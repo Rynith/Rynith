@@ -1,3 +1,4 @@
+// app/api/insights/cluster/route.ts
 export const runtime = "nodejs";
 export const maxDuration = 300;
 
@@ -10,7 +11,7 @@ const j = (s: number, p: any) =>
     headers: { "content-type": "application/json; charset=utf-8" },
   });
 
-// tiny helpers
+// vector helpers
 const dot = (a: number[], b: number[]) =>
   a.reduce((s, v, i) => s + v * (b[i] ?? 0), 0);
 const norm = (x: number[]) => Math.sqrt(x.reduce((s, v) => s + v * v, 0));
@@ -43,17 +44,32 @@ export async function POST(req: Request) {
       1,
       Math.min(30, Number(url.searchParams.get("days") || 7))
     );
-    const sinceISO = new Date(Date.now() - days * 86400_000).toISOString();
+    const sinceISO = new Date(Date.now() - days * 86_400_000).toISOString();
 
     const sb = supabaseService();
 
-    // Fetch embeddings + analysis
+    // IMPORTANT: embed review_analysis via `reviews`, not at the top-level
     const q = sb
       .from("review_embeddings")
       .select(
-        "review_id:id, org_id, embedding, reviews!inner(id, org_id, published_at), review_analysis!left(sentiment, topics)"
+        `
+        review_id:id,
+        org_id,
+        embedding,
+        reviews!inner (
+          id,
+          org_id,
+          published_at,
+          review_analysis (
+            sentiment,
+            topics
+          )
+        )
+      `
       )
       .gte("reviews.published_at", sinceISO)
+      // when ordering by a joined table, point to it explicitly
+      .order("published_at", { referencedTable: "reviews", ascending: false })
       .limit(2000);
 
     const { data: rowsRaw, error } = onlyOrg
@@ -64,19 +80,23 @@ export async function POST(req: Request) {
       return j(500, { error: error.message });
     }
 
-    // Reshape results; guard types
+    // Reshape safely from the nested structure
     const rows: EmbRow[] = (rowsRaw || [])
-      .map((r: any) => ({
-        id: r.review_id,
-        org_id: r.org_id,
-        embedding: Array.isArray(r.embedding) ? (r.embedding as number[]) : [],
-        sentiment: Array.isArray(r.review_analysis)
-          ? r.review_analysis[0]?.sentiment ?? null
-          : r.review_analysis?.sentiment ?? null,
-        topics: Array.isArray(r.review_analysis)
-          ? r.review_analysis[0]?.topics ?? null
-          : r.review_analysis?.topics ?? null,
-      }))
+      .map((r: any) => {
+        const ra = Array.isArray(r?.reviews?.review_analysis)
+          ? r.reviews.review_analysis[0]
+          : r?.reviews?.review_analysis ?? null;
+
+        return {
+          id: r.review_id,
+          org_id: r.org_id,
+          embedding: Array.isArray(r.embedding)
+            ? (r.embedding as number[])
+            : [],
+          sentiment: ra?.sentiment ?? null,
+          topics: ra?.topics ?? null,
+        };
+      })
       .filter((r) => r.embedding.length > 0 && r.org_id);
 
     // Group by org
@@ -86,7 +106,7 @@ export async function POST(req: Request) {
       byOrg.get(r.org_id)!.push(r);
     }
 
-    const period_start = new Date(Date.now() - days * 86400_000)
+    const period_start = new Date(Date.now() - days * 86_400_000)
       .toISOString()
       .slice(0, 10);
     const period_end = new Date().toISOString().slice(0, 10);
@@ -103,7 +123,6 @@ export async function POST(req: Request) {
         const p = points[i];
         let best = -1;
         let bestSim = -1;
-
         for (let c = 0; c < clusters.length; c++) {
           const sim = dot(p, clusters[c].centroid);
           if (sim > bestSim) {
@@ -111,7 +130,6 @@ export async function POST(req: Request) {
             best = c;
           }
         }
-
         if (bestSim >= THRESH && best >= 0) {
           clusters[best].ids.push(i);
           const all = clusters[best].ids.map((idx) => points[idx]);
@@ -128,6 +146,7 @@ export async function POST(req: Request) {
         .map((c, ci) => {
           const memberIdx = c.ids;
           const size = memberIdx.length;
+
           const avgSent =
             size > 0
               ? memberIdx.reduce(
@@ -168,8 +187,8 @@ export async function POST(req: Request) {
         .sort((a, b) => b.size - a.size)
         .slice(0, 8);
 
-      // Upsert window
       const svc = supabaseService();
+
       const del = await svc
         .from("topic_clusters")
         .delete()
@@ -188,6 +207,7 @@ export async function POST(req: Request) {
           return j(500, { error: ins.error.message });
         }
       }
+
       totalClusters += stats.length;
     }
 
