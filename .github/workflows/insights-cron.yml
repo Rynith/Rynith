@@ -3,7 +3,7 @@ name: Insights Cron
 
 on:
   schedule:
-    - cron: "10 7 * * *" # daily 07:10 UTC
+    - cron: "10 7 * * *"   # daily 07:10 UTC
   workflow_dispatch:
 
 permissions:
@@ -18,53 +18,52 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     env:
-        BASE_URL: https://www.rynith.com
-        INTERNAL_SYNC_KEY: ${{ secrets.INTERNAL_SYNC_KEY }}
-
+      BASE_URL: ${{ secrets.RUN_BASE_URL }}         # set this to https://www.rynith.com
+      INTERNAL_SYNC_KEY: ${{ secrets.INTERNAL_SYNC_KEY }}
     steps:
-      - name: Validate env
+      - name: Check required secrets
         run: |
           set -euo pipefail
-          if [ -z "${BASE_URL:-}" ]; then echo "RUN_BASE_URL secret missing"; exit 1; fi
-          if [ -z "${INTERNAL_SYNC_KEY:-}" ]; then echo "INTERNAL_SYNC_KEY secret missing"; exit 1; fi
-          echo "Using BASE_URL=$BASE_URL"
+          if [ -z "${BASE_URL:-}" ] || [ -z "${INTERNAL_SYNC_KEY:-}" ]; then
+            echo "Missing RUN_BASE_URL or INTERNAL_SYNC_KEY secrets"
+            exit 1
+          fi
+          echo "Target: $BASE_URL"
 
-      - name: Run clustering (/api/insights/cluster)
+      - name: Run clustering (prints status + body, retries)
         run: |
           set -euo pipefail
           attempt=0; max=3
           until [ $attempt -ge $max ]; do
             attempt=$((attempt+1))
-            echo "POST $BASE_URL/api/insights/cluster (attempt $attempt/$max)"
-            code=$(curl -sS -X POST \
+            echo "POST $BASE_URL/api/insights/cluster (try $attempt/$max)"
+            http_code=$(curl -sS -X POST \
               -H "x-internal-key: $INTERNAL_SYNC_KEY" \
-              -o resp.json -w "%{http_code}" \
+              -o cluster.json -w "%{http_code}" \
               "$BASE_URL/api/insights/cluster" || true)
-            echo "HTTP $code"
-            cat resp.json || true; echo
-            if [ "$code" -ge 200 ] && [ "$code" -lt 400 ]; then
-              echo "Cluster OK"; break
-            fi
-            echo "Retrying in 10s…"; sleep 10
+            echo "HTTP $http_code"
+            cat cluster.json || true
+            echo
+            if [ "$http_code" -ge 200 ] && [ "$http_code" -lt 400 ]; then break; fi
+            sleep 8
           done
-          if [ $attempt -eq $max ]; then echo "Cluster failed after $max attempts"; exit 1; fi
+          test "$http_code" -ge 200 && test "$http_code" -lt 400
 
-      - name: Summarize + actions (/api/insights/summarize)
+      - name: Summarize + actions (prints status + body, retries)
         run: |
           set -euo pipefail
           attempt=0; max=3
           until [ $attempt -ge $max ]; do
             attempt=$((attempt+1))
-            echo "POST $BASE_URL/api/insights/summarize (attempt $attempt/$max)"
-            code=$(curl -sS -X POST \
+            echo "POST $BASE_URL/api/insights/summarize (try $attempt/$max)"
+            http_code=$(curl -sS -X POST \
               -H "x-internal-key: $INTERNAL_SYNC_KEY" \
-              -o resp.json -w "%{http_code}" \
+              -o summarize.json -w "%{http_code}" \
               "$BASE_URL/api/insights/summarize" || true)
-            echo "HTTP $code"
-            cat resp.json || true; echo
-            if [ "$code" -ge 200 ] && [ "$code" -lt 400 ]; then
-              echo "Summarize OK"; break
-            fi
-            echo "Retrying in 10s…"; sleep 10
+            echo "HTTP $http_code"
+            cat summarize.json || true
+            echo
+            if [ "$http_code" -ge 200 ] && [ "$http_code" -lt 400 ]; then break; fi
+            sleep 8
           done
-          if [ $attempt -eq $max ]; then echo "Summarize failed after $max attempts"; exit 1; fi
+          test "$http_code" -ge 200 && test "$http_code" -lt 400
