@@ -18,8 +18,9 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     env:
-      BASE_URL: ${{ secrets.RUN_BASE_URL }}          # e.g. https://www.rynith.com
-      INTERNAL_SYNC_KEY: ${{ secrets.INTERNAL_SYNC_KEY }}
+        BASE_URL: https://www.rynith.com
+        INTERNAL_SYNC_KEY: ${{ secrets.INTERNAL_SYNC_KEY }}
+
     steps:
       - name: Validate env
         run: |
