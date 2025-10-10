@@ -2,8 +2,8 @@ name: Sources Sync Cron
 
 on:
   schedule:
-    - cron: "*/15 * * * *"   # every 15 minutes
-  workflow_dispatch:         # allow manual run
+    - cron: "*/15 * * * *" # every 15 minutes
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -18,48 +18,59 @@ jobs:
     timeout-minutes: 5
 
     steps:
-      - name: POST /api/sources/sync (with retries)
+      - name: Call /api/sources/sync (with retries, sanitized URL)
         env:
-          RUN_SYNC_URL: ${{ secrets.RUN_SYNC_URL }}           # e.g. https://www.rynith.com/api/sources/sync
-          INTERNAL_SYNC_KEY: ${{ secrets.INTERNAL_SYNC_KEY }} # same key you used via curl
+          RUN_SYNC_URL: ${{ secrets.RUN_SYNC_URL }}
+          INTERNAL_SYNC_KEY: ${{ secrets.INTERNAL_SYNC_KEY }}
+        shell: bash
         run: |
           set -euo pipefail
 
-          if [ -z "${RUN_SYNC_URL:-}" ] || [ -z "${INTERNAL_SYNC_KEY:-}" ]; then
-            echo "❌ Missing RUN_SYNC_URL or INTERNAL_SYNC_KEY repo secrets"
+          # 🧹 Clean up URL and remove unwanted characters
+          CLEAN_URL="$(printf %s "$RUN_SYNC_URL" | tr -d '\r\n')"
+          CLEAN_URL="${CLEAN_URL%\"}"
+          CLEAN_URL="${CLEAN_URL#\"}"
+
+          # 🧭 Validate required secrets
+          if [ -z "${CLEAN_URL:-}" ] || [ -z "${INTERNAL_SYNC_KEY:-}" ]; then
+            echo "❌ Missing RUN_SYNC_URL or INTERNAL_SYNC_KEY secrets"
+            exit 1
+          fi
+          if ! printf %s "$CLEAN_URL" | grep -Eqi '^https?://'; then
+            echo "❌ RUN_SYNC_URL is not a valid http(s) URL"
             exit 1
           fi
 
-          echo "▶️  POST $RUN_SYNC_URL"
+          echo "🔗 POST <masked URL> (length: $(printf %s "$CLEAN_URL" | wc -c | tr -d ' '))"
+
           attempt=0
           max=3
-          sleep_s=10
-
-          until [ $attempt -ge $max ]; do
+          while [ $attempt -lt $max ]; do
             attempt=$((attempt+1))
+            echo "▶️  Attempt $attempt/$max"
 
-            # Use a temp file so we can show body on failure without leaking headers
             rm -f response.json || true
-            http_code=$(curl -sS -X POST \
-              -H "x-internal-key: $INTERNAL_SYNC_KEY" \
-              -H "User-Agent: rynith-sync-cron/1.0" \
-              --max-time 25 \
+
+            http_code=$(curl -sS -L --max-time 30 --retry 2 --retry-delay 3 \
+              -X POST -H "x-internal-key: $INTERNAL_SYNC_KEY" \
               -o response.json -w "%{http_code}" \
-              "$RUN_SYNC_URL" || true)
+              "$CLEAN_URL" || true)
 
             echo "HTTP $http_code"
-            cat response.json || true
-            echo
+            if [ -f response.json ]; then
+              cat response.json || true
+              echo
+            else
+              echo "(no response body)"
+            fi
 
-            if [ "$http_code" -ge 200 ] && [ "$http_code" -lt 300 ]; then
+            if [ "$http_code" -ge 200 ] && [ "$http_code" -lt 400 ]; then
               echo "✅ Sync OK"
               exit 0
             fi
 
-            if [ $attempt -lt $max ]; then
-              echo "⚠️  Sync failed (try $attempt/$max). Retrying in ${sleep_s}s…"
-              sleep $sleep_s
-            fi
+            echo "⚠️  Sync failed. Retrying in 10s…"
+            sleep 10
           done
 
           echo "❌ Sync failed after $max attempts"
