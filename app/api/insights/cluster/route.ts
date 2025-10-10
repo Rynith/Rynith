@@ -11,7 +11,6 @@ const j = (s: number, p: any) =>
     headers: { "content-type": "application/json; charset=utf-8" },
   });
 
-// math helpers
 const dot = (a: number[], b: number[]) =>
   a.reduce((s, v, i) => s + v * (b[i] ?? 0), 0);
 const norm = (x: number[]) => Math.sqrt(x.reduce((s, v) => s + v * v, 0));
@@ -21,11 +20,12 @@ const normalize = (x: number[]) => {
 };
 
 type EmbRow = {
-  id: string; // review_id
+  id: string;
   org_id: string;
   embedding: number[];
   sentiment: number | null;
   topics: string[] | null;
+  published_at?: string | null;
 };
 
 export async function POST(req: Request) {
@@ -48,15 +48,11 @@ export async function POST(req: Request) {
 
     const sb = supabaseService();
 
-    // 1) Get recent embeddings joined to reviews for date filtering.
-    //    NOTE the correct alias order: alias:column  ->  id:review_id
+    // Step 1 — fetch embeddings with joined review publish date (no order here)
     let embSel = sb
       .from("review_embeddings")
-      .select(
-        "id:review_id, org_id, embedding, reviews!inner(id, published_at)"
-      )
+      .select("id:review_id, org_id, embedding, reviews!inner(published_at)")
       .gte("reviews.published_at", sinceISO)
-      .order("reviews.published_at", { ascending: false })
       .limit(2000);
 
     if (onlyOrg) embSel = embSel.eq("org_id", onlyOrg);
@@ -69,11 +65,19 @@ export async function POST(req: Request) {
 
     const embeddings = (embRows ?? [])
       .map((r: any) => ({
-        id: r.id as string, // this is review_id via alias
+        id: r.id as string,
         org_id: r.org_id as string,
         embedding: Array.isArray(r.embedding) ? (r.embedding as number[]) : [],
+        published_at: r.reviews?.published_at ?? null,
       }))
       .filter((r) => r.embedding.length && r.org_id);
+
+    // Local sort instead of PostgREST .order()
+    embeddings.sort((a, b) =>
+      a.published_at && b.published_at
+        ? b.published_at.localeCompare(a.published_at)
+        : 0
+    );
 
     if (!embeddings.length) {
       return j(200, {
@@ -87,7 +91,7 @@ export async function POST(req: Request) {
       });
     }
 
-    // 2) Fetch analysis separately and map by review_id.
+    // Step 2 — fetch analysis and map
     const reviewIds = Array.from(new Set(embeddings.map((e) => e.id)));
     const { data: analysisRows, error: aErr } = await sb
       .from("review_analysis")
@@ -110,16 +114,10 @@ export async function POST(req: Request) {
       });
     }
 
-    // 3) Merge and group by org
+    // Step 3 — merge data
     const rows: EmbRow[] = embeddings.map((e) => {
       const a = analysisById.get(e.id) ?? { sentiment: null, topics: null };
-      return {
-        id: e.id,
-        org_id: e.org_id,
-        embedding: e.embedding,
-        sentiment: a.sentiment,
-        topics: a.topics,
-      };
+      return { ...e, sentiment: a.sentiment, topics: a.topics };
     });
 
     const byOrg = new Map<string, EmbRow[]>();
@@ -134,7 +132,7 @@ export async function POST(req: Request) {
     const period_end = new Date().toISOString().slice(0, 10);
     let totalClusters = 0;
 
-    // 4) Cluster per org and upsert
+    // Step 4 — cluster per org
     for (const [org_id, arr] of byOrg.entries()) {
       if (!arr.length) continue;
 
@@ -146,7 +144,6 @@ export async function POST(req: Request) {
         const p = points[i];
         let best = -1,
           bestSim = -1;
-
         for (let c = 0; c < clusters.length; c++) {
           const sim = dot(p, clusters[c].centroid);
           if (sim > bestSim) {
@@ -154,7 +151,6 @@ export async function POST(req: Request) {
             best = c;
           }
         }
-
         if (bestSim >= THRESH && best >= 0) {
           clusters[best].ids.push(i);
           const all = clusters[best].ids.map((idx) => points[idx]);
@@ -170,12 +166,13 @@ export async function POST(req: Request) {
       const stats = clusters
         .map((c, ci) => {
           const size = c.ids.length;
-          const avgSent = size
-            ? c.ids.reduce(
-                (s, idx) => s + (Number(arr[idx].sentiment ?? 0) || 0),
-                0
-              ) / size
-            : null;
+          const avgSent =
+            size > 0
+              ? c.ids.reduce(
+                  (s, idx) => s + (Number(arr[idx].sentiment ?? 0) || 0),
+                  0
+                ) / size
+              : null;
 
           const bag: Record<string, number> = {};
           for (const idx of c.ids) {
@@ -188,8 +185,6 @@ export async function POST(req: Request) {
             .sort((a, b) => b[1] - a[1])
             .slice(0, 6)
             .map(([t]) => t);
-          const label = terms[0] || null;
-          const exampleIds = c.ids.slice(0, 5).map((idx) => arr[idx].id);
 
           return {
             org_id,
@@ -198,10 +193,10 @@ export async function POST(req: Request) {
             cluster_id: ci + 1,
             size,
             centroid: c.centroid,
-            label,
+            label: terms[0] || null,
             terms,
             avg_sentiment: avgSent,
-            example_review_ids: exampleIds,
+            example_review_ids: c.ids.slice(0, 5).map((idx) => arr[idx].id),
           };
         })
         .filter((s) => s.size >= 2)
