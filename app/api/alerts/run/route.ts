@@ -5,6 +5,15 @@ import { NextResponse } from "next/server";
 import { supabaseService as supabaseAdmin } from "@/lib/supabase-server"; // service-role client (bypasses RLS)
 import { isOrgPro } from "@/lib/billing";
 
+/* -------------------- ADMIN EMAIL (Step 1) -------------------- */
+// Safe fallback so the route never crashes if ADMIN_EMAIL isn't set
+const ADMIN_EMAIL = process.env.ADMIN_EMAIL || "applications@rynith.com";
+if (process.env.NODE_ENV === "production" && !process.env.ADMIN_EMAIL) {
+  console.warn(
+    "⚠️ ADMIN_EMAIL not set; using fallback applications@rynith.com"
+  );
+}
+
 /* -------------------- tiny utils -------------------- */
 function j(status: number, payload: any) {
   return new NextResponse(JSON.stringify(payload), {
@@ -46,7 +55,8 @@ async function sendEmailResend(
   html: string
 ): Promise<boolean> {
   const key = process.env.RESEND_API_KEY || "";
-  const from = process.env.EMAIL_FROM || "Rynith <no-reply@notifications.rynith.com>";
+  const from =
+    process.env.EMAIL_FROM || "Rynith <no-reply@notifications.rynith.com>";
   if (!key) {
     console.log(`[digest][dev] Would send to ${to}: ${subject}`);
     return true;
@@ -74,6 +84,16 @@ async function sendEmailResend(
     return false;
   }
 }
+
+/* ---- NEW: tiny helper to notify ops (uses ADMIN_EMAIL) ---- */
+async function notifyOps(subject: string, text: string) {
+  const html =
+    `<div style="font-family:Inter,system-ui,Arial,sans-serif"><pre style="white-space:pre-wrap">` +
+    htmlEscape(text) +
+    `</pre></div>`;
+  return sendEmailResend(ADMIN_EMAIL, subject, html);
+}
+
 function renderWeeklyDigestHtml(args: {
   orgName: string | null;
   days: number;
@@ -512,6 +532,14 @@ export async function POST(req: Request) {
       }
       if (anySent) digested += 1;
     }
+  }
+
+  // Optional: allow a quick ops test by calling ?ops_test=1
+  if (new URL(req.url).searchParams.get("ops_test") === "1") {
+    await notifyOps(
+      "Rynith: Alerts Run — Ops Test",
+      `created_alerts=0 (test)\nupdatedBaselines=0 (test)\nadmin=${ADMIN_EMAIL}`
+    );
   }
 
   return j(200, {

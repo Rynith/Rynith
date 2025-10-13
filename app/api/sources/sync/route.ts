@@ -1,66 +1,139 @@
-// app/api/sources/sync/route.ts
 export const runtime = "nodejs";
+export const maxDuration = 300;
 
 import { NextResponse } from "next/server";
+import { createClient } from "@supabase/supabase-js";
 import { connectors } from "@/lib/connectors";
-import { supabaseAdmin } from "@/lib/supabase-admin";
+import {
+  loadSourceState,
+  saveSourceState,
+  upsertReviews,
+  embedNewReviews,
+  analyzeNewReviews,
+} from "@/lib/connectors/util";
+
+const svc = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!,
+  { auth: { persistSession: false } }
+);
+
+const j = (s: number, p: any) =>
+  new NextResponse(JSON.stringify(p), {
+    status: s,
+    headers: { "content-type": "application/json; charset=utf-8" },
+  });
 
 export async function POST(req: Request) {
-  // ✅ no dynamic API lint
-  const provided = (req.headers.get("x-internal-key") ?? "").trim();
-  const expected = process.env.INTERNAL_SYNC_KEY;
-  if (!expected) {
-    return NextResponse.json(
-      { error: "Server misconfigured: INTERNAL_SYNC_KEY is not set" },
-      { status: 500 }
-    );
-  }
-  if (provided !== expected) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  // internal key guard
+  const provided = (req.headers.get("x-internal-key") || "").trim();
+  if (
+    !process.env.INTERNAL_SYNC_KEY ||
+    provided !== process.env.INTERNAL_SYNC_KEY
+  ) {
+    return j(401, { error: "Unauthorized" });
   }
 
-  const supabase = supabaseAdmin();
-  const now = new Date().toISOString();
-
-  const kinds = Object.keys(connectors);
-  const { data: sources, error } = await supabase
+  // Fetch connected sources
+  const { data: sources, error } = await svc
     .from("sources")
-    .select("id, kind, status, next_sync_at, sync_cursor, org_id")
-    .in("kind", kinds.length ? kinds : ["email"])
-    .eq("status", "connected")
-    .or(`next_sync_at.is.null,next_sync_at.lte.${now}`)
-    .limit(10);
+    .select("id, org_id, kind, status, config, display_name")
+    .eq("status", "connected");
+  if (error) return j(500, { error: error.message });
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-  if (!sources?.length) return NextResponse.json({ ok: true, ran: 0, inserted: 0 });
+  let totalFetched = 0,
+    totalInserted = 0,
+    totalEmbedded = 0,
+    totalAnalyzed = 0;
+  const perSource: any[] = [];
 
-  let ran = 0, inserted = 0;
-  for (const s of sources) {
-    const connector = connectors[s.kind];
-    if (!connector?.sync) {
-      await supabase.from("sources").update({
-        error: `no connector implemented for kind=${s.kind}`,
-        next_sync_at: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
-      }).eq("id", s.id);
+  for (const s of sources ?? []) {
+    const c = connectors[s.kind as keyof typeof connectors];
+    if (!c) {
+      perSource.push({
+        source_id: s.id,
+        kind: s.kind,
+        skipped: "no connector",
+      });
       continue;
     }
+
+    const { cursor, since } = await loadSourceState(s.id);
+
+    // Load credentials if present
+    const { data: credRow } = await svc
+      .from("source_credentials")
+      .select("data")
+      .eq("source_id", s.id)
+      .maybeSingle();
+
+    // 1) FETCH
+    let fetched = 0,
+      inserted = 0,
+      embedded = 0,
+      analyzed = 0,
+      nextCursor: string | null = null;
     try {
-      const res = await connector.sync({ sourceId: s.id, since: null });
-      inserted += res.inserted || 0;
-      await supabase.from("sources").update({
-        last_sync_at: new Date().toISOString(),
-        next_sync_at: new Date(Date.now() + 15 * 60 * 1000).toISOString(),
-        sync_cursor: res.nextCursor ?? s.sync_cursor,
-        error: null,
-      }).eq("id", s.id);
-      ran++;
+      const res = await c.sync({
+        org_id: s.org_id,
+        source_id: s.id,
+        cursor,
+        since,
+        config: s.config || null,
+        credentials: credRow?.data || null,
+      });
+
+      fetched = res.reviews.length;
+      totalFetched += fetched;
+
+      // 2) STORE (upsert/dedupe)
+      const ins = await upsertReviews(res.reviews);
+      inserted = ins.length;
+      totalInserted += inserted;
+
+      // 3) EMBED + 4) ANALYZE only for newly inserted
+      if (inserted > 0) {
+        embedded = await embedNewReviews(ins);
+        totalEmbedded += embedded;
+
+        analyzed = await analyzeNewReviews(ins);
+        totalAnalyzed += analyzed;
+      }
+
+      nextCursor = res.nextCursor ?? null;
+      await saveSourceState(s.id, nextCursor, since || null);
+
+      perSource.push({
+        source_id: s.id,
+        kind: s.kind,
+        display_name: s.display_name || null,
+        fetched,
+        inserted,
+        embedded,
+        analyzed,
+        nextCursor,
+      });
     } catch (e: any) {
-      await supabase.from("sources").update({
-        error: e?.message || "sync failed",
-        next_sync_at: new Date(Date.now() + 30 * 60 * 1000).toISOString(),
-      }).eq("id", s.id);
+      perSource.push({
+        source_id: s.id,
+        kind: s.kind,
+        error: String(e?.message || e),
+      });
     }
   }
 
-  return NextResponse.json({ ok: true, ran, inserted });
+  return j(200, {
+    ok: true,
+    sources: (sources ?? []).length,
+    totalFetched,
+    totalInserted,
+    totalEmbedded,
+    totalAnalyzed,
+    perSource,
+  });
+}
+
+// Optional GET guard (so a stray GET returns 405 instead of empty)
+export function GET() {
+  return new NextResponse(null, { status: 405 });
 }

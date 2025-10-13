@@ -1,16 +1,15 @@
 // /lib/connectors/index.ts
-import type { Connector } from "./types"
-import { googleConnector } from "./google"
-// import { yelpConnector } from "./yelp"
-// import { shopifyConnector } from "./shopify"
-// import { twitterConnector } from "./twitter"
+import type { Connector } from "./types";
+import { googleConnector } from "./google";
+import { yelpConnector } from "./yelp";
+import { redditConnector } from "./reddit";
+// import { twitterConnector } from "./twitter"; // if/when you add it
 
+type ConnectorKind = "google" | "yelp" | "reddit" | "email" | "csv" | "manual";
 
-// email/csv/manual already handled by your existing routes; you can add thin wrappers if you like.
-
-export const connectors: Record<string, Connector> = {
+export const connectors: Partial<Record<ConnectorKind, Connector>> = {
   google: googleConnector,
-  // yelp: yelpConnector,
-  // twitter: twitterConnector,
-  // shopify:shopifyConnector
-}
+  yelp: yelpConnector,
+  reddit: redditConnector,
+  // email/csv/manual handled elsewhere; omit here if not programmatic
+};
