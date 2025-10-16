@@ -1,12 +1,18 @@
-// app/dashboard/page.tsx — MVP+ with CTAs, range, pro gate, sync, digest, export
+// app/dashboard/page.tsx — robust dashboard + source filter, pagination, refresh/logout
 export const dynamic = "force-dynamic";
-import { revalidatePath } from "next/cache";
-import AIAdvice from "./AIAdvice";
 
-import { supabaseServer } from "@/lib/supabase-server";
+import Link from "next/link";
+import { revalidatePath } from "next/cache";
+
+import AIAdvice from "./AIAdvice";
 import TrendChart from "@/app/dashboard/TrendChart";
 import FilterBar from "@/app/dashboard/FilterBar";
-import Link from "next/link";
+
+import { supabaseServer } from "@/lib/supabase-server";
+
+import SourceFilterComponent from "@/components/SourceFilter";
+import PagerComponent from "@/components/Pager";
+import RefreshButtonComponent from "@/components/RefreshButton";
 
 // ---------- Server Actions (safe; env never reaches client) ----------
 async function actionSyncNow() {
@@ -22,23 +28,8 @@ async function actionSyncNow() {
       cache: "no-store",
     }).catch(() => {});
   }
-  // ✅ force the dashboard to re-fetch from DB
   revalidatePath("/dashboard");
 }
-
-// async function actionSendTestDigest() {
-//   "use server";
-//   const base =
-//     process.env.NEXT_PUBLIC_BASE_URL ||
-//     (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3000");
-//   const key = process.env.INTERNAL_SYNC_KEY;
-//   if (!key) return;
-//   await fetch(`${base}/api/digest/run?test=1`, {
-//     method: "POST",
-//     headers: { "x-internal-key": key },
-//     cache: "no-store",
-//   }).catch(() => {});
-// }
 
 async function actionSendTestDigest() {
   "use server";
@@ -89,6 +80,27 @@ function ymd(d: Date) {
   return d.toISOString().slice(0, 10);
 }
 
+// tiny client logout button (kept inline to avoid a new file)
+// function LogoutButton() {
+//   "use client";
+//   const { useRouter } = require("next/navigation");
+//   const { supabaseBrowser } = require("@/lib/supabase-browser");
+//   const router = useRouter();
+//   const supa = supabaseBrowser();
+//   return (
+//     <button
+//       className="px-3 py-1.5 border rounded text-sm"
+//       onClick={async () => {
+//         await supa.auth.signOut();
+//         router.push("/auth");
+//         router.refresh();
+//       }}
+//     >
+//       Logout
+//     </button>
+//   );
+// }
+
 export default async function DashboardPage({
   searchParams,
 }: {
@@ -99,11 +111,18 @@ export default async function DashboardPage({
   const pick = (v: string | string[] | undefined) =>
     Array.isArray(v) ? (v[0] ?? "") : (v ?? "");
 
-  // Range + filters from URL
+  // ---- NEW: source + pagination from URL ----
+  const source = pick(sp.source) || "all";
+  const page = Math.max(1, Number(pick(sp.page) || 1));
+  const pageSize = 20;
+  const from = (page - 1) * pageSize;
+  const to = from + pageSize - 1;
+
+  // Range + other filters from URL
   const rangeDays = Number(pick(sp.range)) === 30 ? 30 : 7;
-  const rawTopic = pick(sp.topic).trim();
-  const topic = rawTopic && rawTopic !== "__all__" ? rawTopic : null;
-  const rawMin = pick(sp.minRating).trim();
+  const rawTopic = (pick(sp.topic) || "").trim();
+  const topic = rawTopic && rawTopic !== "__all__" && rawTopic !== "**all**" ? rawTopic : null;
+  const rawMin = (pick(sp.minRating) || "").trim();
   const minRating =
     rawMin && rawMin !== "__any__" && !Number.isNaN(Number(rawMin))
       ? Number(rawMin)
@@ -133,9 +152,14 @@ export default async function DashboardPage({
           <div className="rounded-lg border bg-white p-4 text-sm text-[#666]">
             We’re preparing your workspace…
             <span className="ml-1">
-              <Link href="/onboarding" className="underline">finish onboarding</Link>
+              <Link href="/onboarding" className="underline">
+                finish onboarding
+              </Link>
               {" or "}
-              <Link href="/dashboard" className="underline">refresh</Link>.
+              <Link href="/dashboard" className="underline">
+                refresh
+              </Link>
+              .
             </span>
           </div>
         </div>
@@ -153,7 +177,9 @@ export default async function DashboardPage({
     .select("tier, status, current_period_end")
     .eq("org_id", org_id)
     .maybeSingle();
-  const isPro = (subRow?.tier || "").toLowerCase() === "pro" && (subRow?.status || "") === "active";
+  const isPro =
+    (subRow?.tier || "").toLowerCase() === "pro" &&
+    (subRow?.status || "") === "active";
 
   // -------- Source health --------
   const { data: sources } = await supabase
@@ -190,15 +216,20 @@ export default async function DashboardPage({
       (a) => a.day === today && (a.severity === "warning" || a.severity === "error")
     ) || null;
 
-  // -------- Latest reviews + analysis --------
-  const { data: latestRaw, error: lErr } = await supabase
+  // -------- Latest reviews + analysis (NOW WITH SOURCE FILTER + PAGINATION) --------
+  let q = supabase
     .from("reviews")
     .select(
-      "id, author, rating, body, published_at, review_analysis!left(sentiment,topics,summary)"
+      "id, author, rating, body, source, published_at, review_analysis!left(sentiment,topics,summary)",
+      { count: "exact" }
     )
     .eq("org_id", org_id)
     .order("published_at", { ascending: false })
-    .limit(200);
+    .range(from, to);
+
+  if (source !== "all") q = q.eq("source", source);
+
+  const { data: latestRaw, count, error: lErr } = await q;
 
   // -------- Backfill / analyze progress --------
   const { count: totalReviewCount } = await supabase
@@ -257,10 +288,13 @@ export default async function DashboardPage({
       : r.review_analysis ?? null,
   }));
 
-  const latestReviews = latestAll
+  const filteredByTopicAndRating = latestAll
     .filter((r) => (topic ? (r.review_analysis?.topics || []).includes(topic) : true))
-    .filter((r) => (minRating ? (r.rating ?? 0) >= minRating : true))
-    .slice(0, 10);
+    .filter((r) => (minRating ? (r.rating ?? 0) >= minRating : true));
+
+  // Note: pagination already applied at the SQL level; we still show the filters’ effect on the current page.
+  const latestReviews = filteredByTopicAndRating;
+  const hasMore = !!count && to + 1 < count;
 
   // Progress
   const analyzed = analyzedCount ?? 0;
@@ -312,27 +346,31 @@ export default async function DashboardPage({
           </div>
         </div>
 
-        {/* Header + range switcher */}
+        {/* Header + range switcher + NEW source filter + refresh/logout */}
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold text-[#1A1A1A]">Weekly Summary</h1>
-            <p className="text-[#666]">
-              Hello {user.email}. Your customer feedback insights for the last {rangeDays} days.
-            </p>
+            
           </div>
-          <div className="flex gap-2 text-sm">
+          <p className="text-[#666]">
+              Hello {user.email}. Your customer feedback insights for the last {rangeDays} days.
+          </p>
+          <div className="flex items-center gap-2">
+            <SourceFilterComponent value={source} />
             <Link
               href="/dashboard?range=7"
-              className={`px-2 py-1.5 border rounded ${rangeDays === 7 ? "bg-gray-100" : ""}`}
+              className={`px-2 py-1.5 border rounded text-sm ${rangeDays === 7 ? "bg-gray-100" : ""}`}
             >
               7 days
             </Link>
             <Link
               href="/dashboard?range=30"
-              className={`px-2 py-1.5 border rounded ${rangeDays === 30 ? "bg-gray-100" : ""}`}
+              className={`px-2 py-1.5 border rounded text-sm ${rangeDays === 30 ? "bg-gray-100" : ""}`}
             >
               30 days
             </Link>
+            <RefreshButtonComponent />
+            {/* <LogoutButton /> */}
           </div>
         </div>
 
@@ -414,10 +452,14 @@ export default async function DashboardPage({
           </div>
         )}
 
-        {/* Latest Reviews */}
+        {/* Latest Reviews (source filter + pagination) */}
         <div className="bg-white rounded-lg border shadow">
-          <div className="p-4 border-b">
+          <div className="p-4 border-b flex items-center justify-between">
             <h2 className="font-semibold text-[#1A1A1A]">Latest Reviews</h2>
+            <div className="text-sm text-[#666]">
+              Showing {latestReviews.length} of {count ?? 0}{" "}
+              {source === "all" ? "reviews" : `${source} reviews`}
+            </div>
           </div>
           <div className="divide-y">
             {latestReviews.length ? (
@@ -425,11 +467,14 @@ export default async function DashboardPage({
                 <div key={r.id} className="p-4">
                   <div className="flex items-center justify-between">
                     <div className="text-sm text-[#666]">
-                      {r.author || "Anonymous"} • {r.published_at ? new Date(r.published_at).toLocaleString() : "—"}
+                      {r.author || "Anonymous"} •{" "}
+                      {r.published_at ? new Date(r.published_at).toLocaleString() : "—"}
                     </div>
                     <div className="text-sm text-[#666]">
                       {r.rating != null ? `★ ${r.rating}` : null}{" "}
-                      {r.review_analysis?.sentiment != null ? `• Sent ${r.review_analysis.sentiment}` : null}
+                      {r.review_analysis?.sentiment != null
+                        ? `• Sent ${r.review_analysis.sentiment}`
+                        : null}
                     </div>
                   </div>
                   <p className="mt-1 text-[#1A1A1A]">
@@ -439,7 +484,10 @@ export default async function DashboardPage({
                   {r.review_analysis?.topics?.length ? (
                     <div className="mt-2 flex flex-wrap gap-2">
                       {r.review_analysis.topics.map((t) => (
-                        <span key={t} className="text-xs px-2 py-1 rounded-full bg-gray-50 text-gray-700 border">
+                        <span
+                          key={t}
+                          className="text-xs px-2 py-1 rounded-full bg-gray-50 text-gray-700 border"
+                        >
                           {t}
                         </span>
                       ))}
@@ -454,10 +502,13 @@ export default async function DashboardPage({
               </div>
             )}
           </div>
+
+          <div className="p-4 border-t flex justify-end">
+            <PagerComponent page={page} hasMore={hasMore} />
+          </div>
         </div>
 
         <AIAdvice />
-
       </div>
     </div>
   );

@@ -1,109 +1,172 @@
-import type { Connector, SyncResult, MappedReview } from "./types";
+import { getAppToken } from "./reddit-auth";
+import {
+  fetchJson,
+  embedNewReviews,
+  analyzeNewReviews,
+} from "@/lib/connectors/util";
+import { upsertReviews } from "@/lib/reviews-ingest";
+import { supabaseService } from "@/lib/supabase-server";
+import { redditRateLimit } from "@/lib/rate-limits";
 
-/**
- * Two modes:
- *  - App credentials (recommended): REDDIT_CLIENT_ID, REDDIT_CLIENT_SECRET
- *    sources.config = { subreddit: "yoursub", query?: "brand OR product" }
- *  - Public JSON (basic): sources.config = { subreddit: "yoursub" } (no search; pulls hot/new)
- */
-async function redditToken() {
-  if (!process.env.REDDIT_CLIENT_ID || !process.env.REDDIT_CLIENT_SECRET)
-    return null;
-  const res = await fetch("https://www.reddit.com/api/v1/access_token", {
-    method: "POST",
-    headers: {
-      "content-type": "application/x-www-form-urlencoded",
-      authorization:
-        "Basic " +
-        Buffer.from(
-          `${process.env.REDDIT_CLIENT_ID}:${process.env.REDDIT_CLIENT_SECRET}`
-        ).toString("base64"),
-    },
-    body: new URLSearchParams({
-      grant_type: "client_credentials",
-      device_id: "DO_NOT_TRACK_THIS_DEVICE",
-    }),
+export async function syncRedditForOrg(params: {
+  orgId: string;
+  subreddit?: string;
+  query?: string;
+  limit?: number;
+}) {
+  const { orgId, subreddit, query, limit = 50 } = params;
+
+  // rate limit per org
+  const rl = redditRateLimit(orgId);
+  if (!rl.allowed) throw new Error("Too many Reddit syncs right now");
+
+  // Supabase client
+  const supa = supabaseService();
+
+  // load last cursor
+  const { data: credRow } = await supa
+    .from("source_credentials")
+    .select("cursor")
+    .eq("org_id", orgId)
+    .eq("source", "reddit")
+    .maybeSingle();
+
+  const after = (credRow?.cursor as { after?: string } | null)?.after;
+
+  const token = await getAppToken();
+  const ua = process.env.REDDIT_USER_AGENT!;
+
+  // build listing URL
+  const base = query
+    ? `https://oauth.reddit.com/r/${subreddit || "all"}/search?restrict_sr=${
+        subreddit ? "1" : "0"
+      }&q=${encodeURIComponent(query)}&sort=new&type=link`
+    : `https://oauth.reddit.com/r/${subreddit || "all"}/new`;
+
+  const url = new URL(base);
+  url.searchParams.set("limit", String(limit));
+  if (after) url.searchParams.set("after", after);
+
+  const listing = await fetchJson(url.toString(), {
+    headers: { Authorization: `Bearer ${token}`, "User-Agent": ua },
   });
-  if (!res.ok) return null;
-  return res.json();
-}
 
-export const redditConnector: Connector = {
-  kind: "reddit",
-  async sync({
-    org_id,
-    source_id,
-    cursor,
-    since,
-    config,
-  }): Promise<SyncResult> {
-    const subreddit = String(config?.subreddit || "")
-      .replace(/^r\//, "")
-      .trim();
-    if (!subreddit) return { reviews: [], nextCursor: null };
+  const posts: any[] = listing?.data?.children?.map((c: any) => c.data) ?? [];
+  const nextAfter: string | undefined = listing?.data?.after ?? undefined;
 
-    const query = String(config?.query || "").trim() || null;
-    const auth = await redditToken();
-
-    let url: string;
-    if (auth && query) {
-      const params = new URLSearchParams({
-        q: `subreddit:${subreddit} ${query}`,
-        sort: "new",
-        limit: "50",
-        ...(cursor ? { after: cursor } : {}),
+  // fetch a few comments for each post (lightweight)
+  const commentsByPost: Record<string, any[]> = {};
+  for (const p of posts.slice(0, 10)) {
+    const permalink = p.permalink as string;
+    const commentsUrl = `https://oauth.reddit.com${permalink}.json?limit=10`;
+    try {
+      const thread = await fetchJson(commentsUrl, {
+        headers: { Authorization: `Bearer ${token}`, "User-Agent": ua },
       });
-      url = `https://oauth.reddit.com/search?${params.toString()}`;
-    } else {
-      // public JSON
-      const params = new URLSearchParams({
-        limit: "25",
-        ...(cursor ? { after: cursor } : {}),
-      });
-      url = `https://www.reddit.com/r/${encodeURIComponent(
-        subreddit
-      )}/new.json?${params.toString()}`;
+      const comments =
+        thread?.[1]?.data?.children
+          ?.map((c: any) => c?.data)
+          ?.filter((d: any) => d?.body) ?? [];
+      commentsByPost[p.id] = comments;
+    } catch {
+      commentsByPost[p.id] = [];
     }
+  }
 
-    const res = await fetch(url, {
-      headers: auth
-        ? {
-            authorization: `Bearer ${auth.access_token}`,
-            "user-agent": "rynith-bot/1.0",
-          }
-        : { "user-agent": "rynith-bot/1.0" },
-    });
-    if (!res.ok) throw new Error(`reddit fetch failed: ${res.status}`);
-    const json = await res.json();
+  // map to review rows
+  const mapped: {
+    org_id: string;
+    source: "reddit";
+    external_id: string;
+    author: string | null;
+    body: string;
+    rating: number | null;
+    published_at: string | null;
+    url: string | null;
+  }[] = [];
 
-    const posts = json?.data?.children ?? [];
-    const nextCursor = json?.data?.after ?? null;
-
-    const rows: MappedReview[] = posts.map((p: any) => {
-      const d = p.data || {};
-      const body = d.selftext || d.title || "";
-      return {
-        external_id: String(d.id),
-        org_id,
-        source_id,
-        rating: null, // reddit has no star rating
-        author: d.author || null,
-        text: body,
-        url: d.permalink ? `https://reddit.com${d.permalink}` : null,
-        published_at: d.created_utc
-          ? new Date(d.created_utc * 1000).toISOString()
+  for (const p of posts) {
+    const body = [p.title, p.selftext].filter(Boolean).join("\n\n");
+    if (body.trim()) {
+      mapped.push({
+        org_id: orgId,
+        source: "reddit",
+        external_id: `post_${p.id}`,
+        author: p.author || null,
+        body,
+        rating: null,
+        published_at: p.created_utc
+          ? new Date(p.created_utc * 1000).toISOString()
           : null,
-        raw: d,
-      };
-    });
+        url: p.url || `https://reddit.com${p.permalink}` || null,
+      });
+    }
+    for (const c of commentsByPost[p.id] || []) {
+      if (!c?.body) continue;
+      mapped.push({
+        org_id: orgId,
+        source: "reddit",
+        external_id: `comment_${c.id}`,
+        author: c.author || null,
+        body: c.body,
+        rating: null,
+        published_at: c.created_utc
+          ? new Date(c.created_utc * 1000).toISOString()
+          : null,
+        url: `https://reddit.com${c.permalink}` || null,
+      });
+    }
+  }
 
-    // Optional crude 'since' filter by time if provided
-    const filtered = since
-      ? rows.filter(
-          (r) => !r.published_at || new Date(r.published_at) >= new Date(since)
-        )
-      : rows;
+  // upsert → get ids → embed → analyze
+  const ids = await upsertReviews(
+    mapped.map((m) => ({
+      org_id: m.org_id,
+      source: "reddit",
+      external_id: m.external_id,
+      author: m.author,
+      body: m.body,
+      rating: m.rating,
+      published_at: m.published_at,
+    }))
+  );
 
-    return { reviews: filtered, nextCursor };
-  },
-};
+  let embedded = 0,
+    analyzed = 0;
+  if (ids.length) {
+    const { data: rows, error } = await supa
+      .from("reviews")
+      .select("id, org_id, body")
+      .in("id", ids);
+    if (!error && rows?.length) {
+      embedded = await embedNewReviews(rows);
+      analyzed = await analyzeNewReviews(rows);
+    }
+  }
+
+  // save cursor (non-blocking)
+  try {
+    await supa.from("source_credentials").upsert(
+      {
+        org_id: orgId,
+        source: "reddit",
+        credentials: {},
+        cursor: {
+          after: nextAfter || null,
+          lastChecked: new Date().toISOString(),
+        },
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: "org_id,source" } as any
+    );
+  } catch (e) {
+    console.warn("reddit cursor upsert failed:", e);
+  }
+
+  return {
+    inserted: ids.length,
+    embedded,
+    analyzed,
+    nextAfter: nextAfter || null,
+  };
+}

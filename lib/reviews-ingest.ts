@@ -1,9 +1,10 @@
+// lib/reviews-ingest.ts
 import { parse } from "csv-parse/sync";
 import { supabaseServer, supabaseService } from "@/lib/supabase-server";
 import { rateLimit, buildRateLimitHeaders } from "@/lib/rate-limits";
 import { contentExternalId, normalize } from "@/lib/hash";
 
-// --- types from incoming CSV/JSON
+/** ---- Types from incoming CSV/JSON ---- */
 export type IncomingRow = {
   rating?: string | number;
   title?: string;
@@ -24,8 +25,10 @@ function toISO(s?: string) {
   return isNaN(d.getTime()) ? null : d.toISOString();
 }
 
+/** Session path (only for UI endpoints that need the current user/org) */
 export async function getCallerOrgId() {
-  const supabase = supabaseServer();
+  const supabase = await supabaseServer(); // cookie-aware anon client
+  // @ts-ignore - supabase.auth may be undefined depending on setup
   const { data: auth } = await supabase.auth.getUser();
   const user = auth?.user;
   if (!user) throw new Error("Unauthorized");
@@ -40,119 +43,134 @@ export async function getCallerOrgId() {
   return member.org_id as string;
 }
 
-export async function getOrCreateCsvSource(org_id: string) {
-  const supa = supabaseServer();
-  const { data: found } = await supa
-    .from("sources")
-    .select("id")
-    .eq("org_id", org_id)
-    .eq("kind", "csv")
-    .maybeSingle();
-
-  if (found?.id) return found.id as string;
-
-  const { data: created, error } = await supa
-    .from("sources")
-    .insert({ org_id, kind: "csv", display_name: "CSV Upload", config: {} })
-    .select("id")
-    .single();
-
-  if (error || !created?.id) throw new Error("Failed to create CSV source");
-  return created.id as string;
+/**
+ * Legacy no-op: we no longer persist a row in `sources` for manual ingest.
+ * Keep signature so callers don't break; always return "csv".
+ */
+export async function getOrCreateCsvSource(_org_id: string) {
+  return "csv";
 }
 
+export type ReviewInsert = {
+  org_id: string;
+  source: "csv" | "yelp" | "reddit" | "google_gbp" | "google_places";
+  external_id: string;
+  author: string | null;
+  body: string;
+  rating: number | null;
+  published_at: string | null;
+};
+
+/** Map incoming rows to `reviews` rows (final schema uses `body` + `source`) */
 export function mapRowsToReviews(
   org_id: string,
-  source_id: string,
+  _source_id: string, // kept for compatibility (unused)
   rows: IncomingRow[]
-) {
+): ReviewInsert[] {
+  // <-- explicit return type
   return rows
     .map((r) => {
       const author = r.author ?? null;
       const body = (r.body ?? r.review ?? "").toString();
       const published_at = toISO(r.published_at);
+
       const external_id =
         (r.external_id ? normalize(String(r.external_id)) : null) ||
         contentExternalId(author, body, published_at);
 
       return {
         org_id,
-        source_id,
-        external_id,
+        source: "csv" as const, // <-- literal, NOT string
+        external_id: external_id!, // <-- assert non-null after fallback
         author,
-        rating: r.rating != null ? toNumber(r.rating) : null,
-        title: r.title ?? null,
         body,
-        language: "en",
+        rating: r.rating != null ? toNumber(r.rating) : null,
         published_at,
       };
     })
-    .filter((r) => r.body && r.body.trim().length > 0);
+    .filter((r) => r.body.trim().length > 0);
 }
 
+/**
+ * Upsert reviews and return the concrete IDs that exist in `reviews`.
+ * Requires the unique index: (org_id, source, external_id).
+ */
+// 3) Let upsertReviews accept rows from any connector
 export async function upsertReviews(
-  reviewRows: ReturnType<typeof mapRowsToReviews>
-) {
-  const supa = supabaseServer(); // anon client, relies on your RLS (recommended)
-  const { error } = await supa.from("reviews").upsert(reviewRows, {
-    onConflict: "org_id,source_id,external_id",
-    ignoreDuplicates: true,
+  reviewRows: ReviewInsert[]
+): Promise<string[]> {
+  const supa = supabaseService();
+
+  const { error: upErr } = await supa.from("reviews").upsert(reviewRows, {
+    onConflict: "org_id,source,external_id",
+    ignoreDuplicates: false,
   });
-  if (error) throw new Error(error.message);
+  if (upErr) throw new Error(upErr.message);
+
+  // fetch back ids
+  const byOrgSource = new Map<string, string[]>();
+  for (const r of reviewRows) {
+    const key = `${r.org_id}|${r.source}`;
+    const arr = byOrgSource.get(key) || [];
+    arr.push(r.external_id);
+    byOrgSource.set(key, arr);
+  }
+
+  const ids: string[] = [];
+  for (const [key, extIds] of byOrgSource) {
+    const [org_id, source] = key.split("|");
+    const CHUNK = 1000;
+    for (let i = 0; i < extIds.length; i += CHUNK) {
+      const chunk = extIds.slice(i, i + CHUNK);
+      const { data, error } = await supa
+        .from("reviews")
+        .select("id")
+        .eq("org_id", org_id)
+        .eq("source", source)
+        .in("external_id", chunk);
+      if (error) throw new Error(error.message);
+      ids.push(...(data?.map((d: any) => d.id) ?? []));
+    }
+  }
+
+  return ids;
 }
 
+/** CSV text → rows */
 export function parseCsvText(csvText: string): {
   rows: IncomingRow[];
   errors: any[];
 } {
-  const parsed = Papa.parse<IncomingRow>(csvText, {
-    header: true,
-    skipEmptyLines: true,
-  });
-  return { rows: parsed.data || [], errors: parsed.errors || [] };
-}
-
-export function guardSizeAndType(
-  req: Request,
-  maxBytes: number,
-  mustBe?: string[]
-) {
-  const len = Number(req.headers.get("content-length") || 0);
-  if (len > maxBytes)
-    return {
-      ok: false,
-      res: new Response(JSON.stringify({ error: "File too large" }), {
-        status: 413,
-      }),
-    };
-  if (mustBe?.length) {
-    const ct = (req.headers.get("content-type") || "").toLowerCase();
-    const okType = mustBe.some((t) => ct.includes(t));
-    if (!okType)
-      return {
-        ok: false,
-        res: new Response(
-          JSON.stringify({ error: "Unsupported content-type" }),
-          { status: 415 }
-        ),
-      };
+  try {
+    const records = parse(csvText, {
+      columns: true,
+      skip_empty_lines: true,
+      trim: true,
+    }) as IncomingRow[];
+    return { rows: records || [], errors: [] };
+  } catch (e: any) {
+    return { rows: [], errors: [e?.message || "parse error"] };
   }
-  return { ok: true as const };
 }
 
+/** Fire-and-forget analyzer trigger (kept for compatibility; optional) */
 export async function triggerAnalyzeBackfill() {
-  const base = process.env.NEXT_PUBLIC_BASE_URL!;
-  const key = process.env.INTERNAL_SYNC_KEY!;
+  const base =
+    process.env.NEXT_PUBLIC_BASE_URL ||
+    process.env.NEXT_PUBLIC_SITE_URL ||
+    "http://localhost:3000";
+  const key = process.env.INTERNAL_SYNC_KEY || "";
   try {
     await fetch(`${base}/api/analyze`, {
       method: "POST",
-      headers: { "x-internal-key": key },
+      headers: key ? { "x-internal-key": key } : {},
     });
   } catch {
     // non-blocking
   }
 }
 
+/** Tiny rate limit helper for edge endpoints */
 export function applyRateLimitOr429(
   key: string,
   limit = 30,

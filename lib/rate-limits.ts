@@ -31,6 +31,10 @@ function gc(now: number, windowMs: number) {
  *  { allowed, remaining, retryAfterMs? }
  *   - retryAfterMs is present ONLY when not allowed.
  */
+export function redditRateLimit(key: string) {
+  return rateLimit(`reddit:${key}`, 30, 60_000); // 30 req/min
+}
+
 export function rateLimit(
   key: string,
   limit: number = 30,
