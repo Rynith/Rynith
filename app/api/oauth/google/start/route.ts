@@ -10,7 +10,10 @@ export async function GET(req: Request) {
   if (!orgId) return new NextResponse("orgId required", { status: 400 });
 
   const clientId = process.env.GOOGLE_OAUTH_CLIENT_ID!;
-  const redirectUri = `${process.env.NEXT_PUBLIC_SITE_URL}/api/oauth/google/callback`;
+  // start route
+  const base = process.env.NEXT_PUBLIC_SITE_URL || new URL(req.url).origin;
+  const redirectUri = `${base}/api/oauth/google/callback`;
+
   const state = randomState() + `:${orgId}`;
 
   const url = new URL("https://accounts.google.com/o/oauth2/v2/auth");

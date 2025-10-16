@@ -10,6 +10,9 @@ export async function GET(req: Request) {
   const code = url.searchParams.get("code");
   const state = url.searchParams.get("state");
   const error = url.searchParams.get("error");
+  const base = process.env.NEXT_PUBLIC_SITE_URL || url.origin;
+
+
 
   if (error) return new NextResponse(`Google error: ${error}`, { status: 400 });
   if (!code || !state)
@@ -25,7 +28,7 @@ export async function GET(req: Request) {
       code,
       client_id: process.env.GOOGLE_OAUTH_CLIENT_ID!,
       client_secret: process.env.GOOGLE_OAUTH_CLIENT_SECRET!,
-      redirect_uri: `${process.env.NEXT_PUBLIC_SITE_URL}/api/oauth/google/callback`,
+      redirect_uri: `${base}/api/oauth/google/callback`,
       grant_type: "authorization_code",
     }),
   });
